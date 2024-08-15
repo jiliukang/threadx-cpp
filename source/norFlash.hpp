@@ -45,8 +45,6 @@ class NorFlashBase : protected ThreadX::Native::LX_NOR_FLASH
     Error writeSector(const ThreadX::Ulong sectorNumber, std::span<ThreadX::Ulong, m_sectorSizeInWord> sectorData);
 
   protected:
-    static inline std::atomic_flag m_initialised = ATOMIC_FLAG_INIT;
-
     void init(std::span<ThreadX::Ulong> extendedCacheMemory, const ThreadX::Ulong storageSize,
               const ThreadX::Ulong blockSize, const ThreadX::Ulong baseAddress);
 
@@ -64,6 +62,7 @@ class NorFlashBase : protected ThreadX::Native::LX_NOR_FLASH
         static ThreadX::Uint systemError(ThreadX::Native::LX_NOR_FLASH *norFlashPtr, ThreadX::Uint errorCode);
     };
 
+    static inline std::atomic_flag m_initialised = ATOMIC_FLAG_INIT;
     Driver m_driver;
     std::array<ThreadX::Ulong, m_sectorSizeInWord> m_sectorBuffer{};
 };
@@ -79,11 +78,10 @@ template <ThreadX::Ulong CacheSize = 0> class NorFlash : public NorFlashBase
 
   public:
     explicit NorFlash(const ThreadX::Ulong storageSize, const ThreadX::Ulong blockSize, const Driver &driver,
-             const ThreadX::Ulong baseAddress = 0);
+                      const ThreadX::Ulong baseAddress = 0);
 
   private:
     using NorFlashBase::init;
-    using NorFlashBase::m_initialised;
 
     std::array<ThreadX::Ulong, CacheSize / ThreadX::wordSize> m_extendedCacheMemory{};
 };

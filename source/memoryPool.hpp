@@ -9,16 +9,11 @@ namespace ThreadX
 class BytePoolBase : protected Native::TX_BYTE_POOL
 {
   public:
+    template <class Pool> friend class Allocation;
     BytePoolBase(const BytePoolBase &) = delete;
     BytePoolBase &operator=(const BytePoolBase &) = delete;
 
     static constexpr auto minimumPoolSize(std::span<const Ulong> memorySizes);
-
-    Error release(void *memoryPtr);
-
-    template <typename Rep = TickTimer::rep, typename Period = TickTimer::period>
-    std::pair<Error, void *> allocate(
-        const Ulong memorySizeInBytes, const std::chrono::duration<Rep, Period> &duration = TickTimer::noWait);
 
     /// Places the highest priority thread suspended for memory on this pool at the front of the suspension list.
     /// All other threads remain in the same FIFO order they were suspended in.
@@ -40,16 +35,6 @@ constexpr auto BytePoolBase::minimumPoolSize(std::span<const Ulong> memorySizes)
     }
 
     return poolSize;
-}
-
-template <typename Rep, typename Period>
-std::pair<Error, void *> BytePoolBase::allocate(
-    const Ulong memorySizeInBytes, const std::chrono::duration<Rep, Period> &duration)
-{
-    void *memoryPtr;
-    Error error{tx_byte_allocate(this, std::addressof(memoryPtr), memorySizeInBytes,
-                                 TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
-    return {error, memoryPtr};
 }
 
 /// byte memory pool from which to allocate the thread stacks and queues.
@@ -76,15 +61,11 @@ template <Ulong Size> BytePool<Size>::BytePool(const std::string_view name)
 class BlockPoolBase : protected Native::TX_BLOCK_POOL
 {
   public:
+    template <class Pool> friend class Allocation;
     BlockPoolBase(const BlockPoolBase &) = delete;
     BlockPoolBase &operator=(const BlockPoolBase &) = delete;
 
     Ulong blockSize() const;
-
-    Error release(void *memoryPtr);
-
-    template <typename Rep = TickTimer::rep, typename Period = TickTimer::period>
-    std::pair<Error, void *> allocate(const std::chrono::duration<Rep, Period> &duration = TickTimer::noWait);
 
     /// Places the highest priority thread suspended for memory on this pool at the front of the suspension list.
     /// All other threads remain in the same FIFO order they were suspended in.
@@ -96,15 +77,6 @@ class BlockPoolBase : protected Native::TX_BLOCK_POOL
     ///
     ~BlockPoolBase();
 };
-
-template <typename Rep, typename Period>
-std::pair<Error, void *> BlockPoolBase::allocate(const std::chrono::duration<Rep, Period> &duration)
-{
-    void *memoryPtr;
-    Error error{tx_block_allocate(
-        this, std::addressof(memoryPtr), TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
-    return {error, memoryPtr};
-}
 
 template <Ulong Size, Ulong BlockSize> class BlockPool : public BlockPoolBase
 {
@@ -127,4 +99,54 @@ template <Ulong Size, Ulong BlockSize> BlockPool<Size, BlockSize>::BlockPool(con
         tx_block_pool_create(this, const_cast<char *>(name.data()), BlockSize, m_pool.data(), Size)};
     assert(error == Error::success);
 }
+
+template <class Pool> class Allocation
+{
+  public:
+    Allocation(const Allocation &) = delete;
+    Allocation &operator=(const Allocation &) = delete;
+
+    template <typename Rep = TickTimer::rep, typename Period = TickTimer::period>
+    Allocation(Pool &pool, const Ulong memorySizeInBytes,
+               const std::chrono::duration<Rep, Period> &duration = TickTimer::noWait)
+        requires(std::is_base_of_v<BytePoolBase, Pool>)
+    {
+        [[maybe_unused]] Error error{tx_byte_allocate(
+            std::addressof(pool), std::addressof(memoryPtr), memorySizeInBytes,
+            TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
+        assert(error == Error::success);
+    }
+
+    template <typename Rep = TickTimer::rep, typename Period = TickTimer::period>
+    Allocation(Pool &pool, const std::chrono::duration<Rep, Period> &duration = TickTimer::noWait)
+        requires(std::is_base_of_v<BlockPoolBase, Pool>)
+    {
+        [[maybe_unused]] Error error{tx_block_allocate(
+            tx_byte_allocate(std::addressof(pool), std::addressof(memoryPtr),
+                             TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration))))};
+        assert(error == Error::success);
+    }
+
+    void *getPtr()
+    {
+        return memoryPtr;
+    }
+
+    ~Allocation()
+        requires(std::is_base_of_v<BytePoolBase, Pool>)
+    {
+        [[maybe_unused]] Error error{Native::tx_byte_release(memoryPtr)};
+        assert(error == Error::success);
+    }
+
+    ~Allocation()
+        requires(std::is_base_of_v<BlockPoolBase, Pool>)
+    {
+        [[maybe_unused]] Error error{Native::tx_block_release(memoryPtr)};
+        assert(error == Error::success);
+    }
+
+  private:
+    void *memoryPtr{};
+};
 } // namespace ThreadX

@@ -1,5 +1,6 @@
-
 #include "file.hpp"
+#include "media.hpp"
+#include <utility>
 
 namespace FileX
 {
@@ -21,10 +22,11 @@ File::File(
 
 File::~File()
 {
-    fx_file_close(this);
+    [[maybe_unused]] Error error{fx_file_close(this)};
+    assert(error == Error::success);
 }
 
-MediaBase::Ulong64Pair File::allocate(ThreadX::Ulong64 size, AllocateOption option)
+File::Ulong64Pair File::allocate(ThreadX::Ulong64 size, AllocateOption option)
 {
     Error error{};
     ThreadX::Ulong64 allocatedSize{};
@@ -90,11 +92,6 @@ File::UlongPair File::read(std::span<std::byte> buffer, const ThreadX::Ulong siz
     ThreadX::Ulong actualSize{};
     Error error{fx_file_read(this, buffer.data(), size, std::addressof(actualSize))};
     return {error, actualSize};
-}
-
-Error File::close()
-{
-    return Error{fx_file_close(this)};
 }
 
 void File::writeNotifyCallback(auto notifyFilePtr)

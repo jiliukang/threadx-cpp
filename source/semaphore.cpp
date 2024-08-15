@@ -21,7 +21,8 @@ SemaphoreBase::SemaphoreBase(const Ulong ceiling, const std::string_view name, c
 
 SemaphoreBase::~SemaphoreBase()
 {
-    tx_semaphore_delete(this);
+    [[maybe_unused]] Error error{tx_semaphore_delete(this)};
+    assert(error == Error::success);
 }
 
 Error SemaphoreBase::acquire()

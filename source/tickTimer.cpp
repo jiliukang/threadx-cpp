@@ -38,7 +38,8 @@ TickTimer::TimePoint TickTimer::from_localtime(const std::tm &localtime)
 
 TickTimer::~TickTimer()
 {
-    tx_timer_delete(this);
+    [[maybe_unused]] Error error{tx_timer_delete(this)};
+    assert(error == Error::success);
 }
 
 Error TickTimer::activate()

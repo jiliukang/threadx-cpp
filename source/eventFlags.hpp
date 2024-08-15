@@ -100,7 +100,7 @@ auto EventFlags::waitAllFor(
         flagOption = FlagOption::all;
     }
 
-    return waitFor(bitMask, duration, flagOption);
+    return waitFor(bitMask, std::chrono::duration_cast<TickTimer::Duration>(duration), flagOption);
 }
 
 template <class Clock, typename Duration>

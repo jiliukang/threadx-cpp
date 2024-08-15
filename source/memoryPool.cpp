@@ -8,12 +8,8 @@ BytePoolBase::BytePoolBase() : Native::TX_BYTE_POOL{}
 
 BytePoolBase::~BytePoolBase()
 {
-    tx_byte_pool_delete(this);
-}
-
-Error BytePoolBase::release(void *memoryPtr)
-{
-    return Error{Native::tx_byte_release(memoryPtr)};
+    [[maybe_unused]] Error error{tx_byte_pool_delete(this)};
+    assert(error == Error::success);
 }
 
 Error BytePoolBase::prioritise()
@@ -32,17 +28,13 @@ BlockPoolBase::BlockPoolBase() : Native::TX_BLOCK_POOL{}
 
 BlockPoolBase::~BlockPoolBase()
 {
-    tx_block_pool_delete(this);
+    [[maybe_unused]] Error error{tx_block_pool_delete(this)};
+    assert(error == Error::success);
 }
 
 Ulong BlockPoolBase::blockSize() const
 {
     return tx_block_pool_block_size;
-}
-
-Error BlockPoolBase::release(void *memoryPtr)
-{
-    return Error{Native::tx_block_release(memoryPtr)};
 }
 
 Error BlockPoolBase::prioritise()

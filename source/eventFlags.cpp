@@ -19,7 +19,8 @@ EventFlags::EventFlags(const std::string_view name, const NotifyCallback &setNot
 
 EventFlags::~EventFlags()
 {
-    tx_event_flags_delete(this);
+    [[maybe_unused]] Error error{tx_event_flags_delete(this)};
+    assert(error == Error::success);
 }
 
 Error EventFlags::set(const Bitmask &bitMask)

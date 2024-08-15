@@ -218,46 +218,33 @@ template <typename Msg, class Pool> class Queue : public QueueBase<Msg>
     /// \param sendNotifyCallback function to call when a message sent to queue.
     /// The Notifycallback is not allowed to call any ThreadX API with a suspension option.
     explicit Queue(const std::string_view name, Pool &pool, const Ulong queueSizeInNumOfMessages,
-          const QueueBase<Msg>::NotifyCallback &sendNotifyCallback = {})
+                   const QueueBase<Msg>::NotifyCallback &sendNotifyCallback = {})
         requires(std::is_base_of_v<BytePoolBase, Pool>);
-    explicit Queue(const std::string_view name, Pool &pool, const QueueBase<Msg>::NotifyCallback sendNotifyCallback = {})
+    explicit Queue(
+        const std::string_view name, Pool &pool, const QueueBase<Msg>::NotifyCallback sendNotifyCallback = {})
         requires(std::is_base_of_v<BlockPoolBase, Pool>);
-    ~Queue();
 
   private:
     using QueueBase<Msg>::create;
 
-    Pool &m_pool;
+    Allocation<Pool> m_queueAlloc;
 };
 
 template <typename Msg, class Pool>
 Queue<Msg, Pool>::Queue(const std::string_view name, Pool &pool, const Ulong queueSizeInNumOfMessages,
                         const QueueBase<Msg>::NotifyCallback &sendNotifyCallback)
     requires(std::is_base_of_v<BytePoolBase, Pool>)
-    : QueueBase<Msg>{sendNotifyCallback}, m_pool{pool}
+    : QueueBase<Msg>{sendNotifyCallback}, m_queueAlloc{pool, queueSizeInNumOfMessages * sizeof(Msg)}
 {
-    Ulong queueSizeInBytes{queueSizeInNumOfMessages * sizeof(Msg)};
-
-    auto [error, queueStartPtr] = pool.allocate(queueSizeInBytes);
-    assert(error == Error::success);
-
-    QueueBase<Msg>::create(name, queueSizeInBytes, queueStartPtr);
+    QueueBase<Msg>::create(name, queueSizeInNumOfMessages * sizeof(Msg), m_queueAlloc.getPtr());
 }
 
 template <typename Msg, class Pool>
 Queue<Msg, Pool>::Queue(
     const std::string_view name, Pool &pool, const QueueBase<Msg>::NotifyCallback sendNotifyCallback)
     requires(std::is_base_of_v<BlockPoolBase, Pool>)
-    : QueueBase<Msg>{sendNotifyCallback}, m_pool{pool}
+    : QueueBase<Msg>{sendNotifyCallback}, m_queueAlloc{pool}
 {
-    auto [error, queueStartPtr] = pool.allocate();
-    assert(error == Error::success);
-
-    QueueBase<Msg>::create(name, pool.blockSize(), queueStartPtr);
-}
-
-template <typename Msg, class Pool> Queue<Msg, Pool>::~Queue()
-{
-    m_pool.release(Native::TX_QUEUE::tx_queue_start);
+    QueueBase<Msg>::create(name, pool.blockSize(), m_queueAlloc.getPtr());
 }
 } // namespace ThreadX

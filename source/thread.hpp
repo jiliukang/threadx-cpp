@@ -1,14 +1,14 @@
 #pragma once
 
 #include "memoryPool.hpp"
-#include "mutex.hpp"
-#include "semaphore.hpp"
 #include "tickTimer.hpp"
 #include "txCommon.hpp"
-#include <functional>
 
 namespace ThreadX
 {
+template <Ulong Ceiling> class CountingSemaphore;
+using BinarySemaphore = CountingSemaphore<1>;
+
 /// pure vitual class to inherit application threads from
 class ThreadBase : protected Native::TX_THREAD
 {
@@ -152,24 +152,24 @@ template <class Pool> class Thread : public ThreadBase
     /// \param timeSlice
     /// \param startType
     explicit Thread(const std::string_view name, Pool &pool, const Ulong stackSize = minimumStackSize,
-           const NotifyCallback &entryExitNotifyCallback = {}, const Uint priority = defaultPriority,
-           const Uint preamptionThresh = defaultPriority, const Ulong timeSlice = noTimeSlice,
-           const StartType startType = StartType::autoStart)
+                    const NotifyCallback &entryExitNotifyCallback = {}, const Uint priority = defaultPriority,
+                    const Uint preamptionThresh = defaultPriority, const Ulong timeSlice = noTimeSlice,
+                    const StartType startType = StartType::autoStart)
         requires(std::is_base_of_v<BytePoolBase, Pool>);
 
     explicit Thread(const std::string_view name, Pool &pool, const NotifyCallback &entryExitNotifyCallback = {},
-           const Uint priority = defaultPriority, const Uint preamptionThresh = defaultPriority,
-           const Ulong timeSlice = noTimeSlice, const StartType startType = StartType::autoStart)
+                    const Uint priority = defaultPriority, const Uint preamptionThresh = defaultPriority,
+                    const Ulong timeSlice = noTimeSlice, const StartType startType = StartType::autoStart)
         requires(std::is_base_of_v<BlockPoolBase, Pool>);
 
-    virtual ~Thread();
+    virtual ~Thread() = default;
 
   private:
     using ThreadBase::create;
-    
+
     virtual void entryCallback() override = 0;
 
-    Pool &m_pool;
+    Allocation<Pool> m_stackAlloc;
 };
 
 template <class Pool>
@@ -177,29 +177,18 @@ Thread<Pool>::Thread(
     const std::string_view name, Pool &pool, const Ulong stackSize, const NotifyCallback &entryExitNotifyCallback,
     const Uint priority, const Uint preamptionThresh, const Ulong timeSlice, const StartType startType)
     requires(std::is_base_of_v<BytePoolBase, Pool>)
-    : ThreadBase{entryExitNotifyCallback}, m_pool{pool}
+    : ThreadBase{entryExitNotifyCallback}, m_stackAlloc{pool, stackSize}
 {
-    auto [error, stackPtr] = pool.allocate(stackSize);
-    assert(error == Error::success);
-
-    create(name, stackPtr, stackSize, priority, preamptionThresh, timeSlice, startType);
+    create(name, m_stackAlloc.getPtr(), stackSize, priority, preamptionThresh, timeSlice, startType);
 }
 
 template <class Pool>
 Thread<Pool>::Thread(const std::string_view name, Pool &pool, const NotifyCallback &entryExitNotifyCallback,
                      const Uint priority, const Uint preamptionThresh, const Ulong timeSlice, const StartType startType)
     requires(std::is_base_of_v<BlockPoolBase, Pool>)
-    : ThreadBase{entryExitNotifyCallback}, m_pool{pool}
+    : ThreadBase{entryExitNotifyCallback}, m_stackAlloc{pool}
 {
-    auto [error, stackPtr] = pool.allocate();
-    assert(error == Error::success);
-
-    create(name, stackPtr, pool.blockSize(), priority, preamptionThresh, timeSlice, startType);
-}
-
-template <class Pool> Thread<Pool>::~Thread()
-{
-    m_pool.release(tx_thread_stack_start);
+    create(name, m_stackAlloc.getPtr(), pool.blockSize(), priority, preamptionThresh, timeSlice, startType);
 }
 } // namespace ThreadX
 

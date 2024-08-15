@@ -1,5 +1,6 @@
 #include "thread.hpp"
 #include "kernel.hpp"
+#include "semaphore.hpp"
 #include <utility>
 
 namespace ThreadX
@@ -11,8 +12,11 @@ ThreadBase::ThreadBase(const NotifyCallback &entryExitNotifyCallback)
 
 ThreadBase::~ThreadBase()
 {
-    terminate();
-    tx_thread_delete(this);
+    [[maybe_unused]] auto error{terminate()};
+    assert(error == Error::success);
+
+    error = Error{tx_thread_delete(this)};
+    assert(error == Error::success);
 };
 
 Error ThreadBase::registerStackErrorNotifyCallback(const ErrorCallback &stackErrorNotifyCallback)

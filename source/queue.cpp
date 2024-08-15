@@ -8,7 +8,8 @@ QueueBaseBase::QueueBaseBase() : Native::TX_QUEUE{}
 
 QueueBaseBase::~QueueBaseBase()
 {
-    tx_queue_delete(this);
+    [[maybe_unused]] Error error{tx_queue_delete(this)};
+    assert(error == Error::success);
 }
 
 Error QueueBaseBase::prioritise()

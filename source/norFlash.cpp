@@ -9,7 +9,8 @@ NorFlashBase::NorFlashBase(const Driver &driver) : ThreadX::Native::LX_NOR_FLASH
 
 NorFlashBase::~NorFlashBase()
 {
-    close();
+    [[maybe_unused]] Error error{close()};
+    assert(error == Error::success);
 }
 
 void NorFlashBase::init(std::span<ThreadX::Ulong> extendedCacheMemory, const ThreadX::Ulong storageSize,
