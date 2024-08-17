@@ -127,7 +127,7 @@ template <class Pool> class Allocation
         assert(error == Error::success);
     }
 
-    void *getPtr()
+    void *get()
     {
         return memoryPtr;
     }

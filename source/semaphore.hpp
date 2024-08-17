@@ -7,7 +7,7 @@
 namespace ThreadX
 {
 ///
-class SemaphoreBase : protected Native::TX_SEMAPHORE
+class SemaphoreBase : Native::TX_SEMAPHORE
 {
   public:
     using NotifyCallback = std::function<void(SemaphoreBase &)>;
@@ -48,7 +48,7 @@ class SemaphoreBase : protected Native::TX_SEMAPHORE
     /// \param initialCount
     /// \param releaseNotifyCallback The Notifycallback is not allowed to call any ThreadX API with a suspension option.
     explicit SemaphoreBase(const Ulong ceiling, const std::string_view name, const Ulong initialCount,
-                  const NotifyCallback &releaseNotifyCallback);
+                           const NotifyCallback &releaseNotifyCallback);
 
     ~SemaphoreBase();
 

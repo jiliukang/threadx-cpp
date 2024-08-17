@@ -9,7 +9,7 @@
 
 namespace LevelX
 {
-class NorFlashBase : protected ThreadX::Native::LX_NOR_FLASH
+class NorFlashBase : ThreadX::Native::LX_NOR_FLASH
 {
   public:
     struct Driver

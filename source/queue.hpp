@@ -236,7 +236,7 @@ Queue<Msg, Pool>::Queue(const std::string_view name, Pool &pool, const Ulong que
     requires(std::is_base_of_v<BytePoolBase, Pool>)
     : QueueBase<Msg>{sendNotifyCallback}, m_queueAlloc{pool, queueSizeInNumOfMessages * sizeof(Msg)}
 {
-    QueueBase<Msg>::create(name, queueSizeInNumOfMessages * sizeof(Msg), m_queueAlloc.getPtr());
+    QueueBase<Msg>::create(name, queueSizeInNumOfMessages * sizeof(Msg), m_queueAlloc.get());
 }
 
 template <typename Msg, class Pool>
@@ -245,6 +245,6 @@ Queue<Msg, Pool>::Queue(
     requires(std::is_base_of_v<BlockPoolBase, Pool>)
     : QueueBase<Msg>{sendNotifyCallback}, m_queueAlloc{pool}
 {
-    QueueBase<Msg>::create(name, pool.blockSize(), m_queueAlloc.getPtr());
+    QueueBase<Msg>::create(name, pool.blockSize(), m_queueAlloc.get());
 }
 } // namespace ThreadX

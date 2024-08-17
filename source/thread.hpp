@@ -10,7 +10,7 @@ template <Ulong Ceiling> class CountingSemaphore;
 using BinarySemaphore = CountingSemaphore<1>;
 
 /// pure vitual class to inherit application threads from
-class ThreadBase : protected Native::TX_THREAD
+class ThreadBase : Native::TX_THREAD
 {
   public:
     ///
@@ -179,7 +179,7 @@ Thread<Pool>::Thread(
     requires(std::is_base_of_v<BytePoolBase, Pool>)
     : ThreadBase{entryExitNotifyCallback}, m_stackAlloc{pool, stackSize}
 {
-    create(name, m_stackAlloc.getPtr(), stackSize, priority, preamptionThresh, timeSlice, startType);
+    create(name, m_stackAlloc.get(), stackSize, priority, preamptionThresh, timeSlice, startType);
 }
 
 template <class Pool>
@@ -188,7 +188,7 @@ Thread<Pool>::Thread(const std::string_view name, Pool &pool, const NotifyCallba
     requires(std::is_base_of_v<BlockPoolBase, Pool>)
     : ThreadBase{entryExitNotifyCallback}, m_stackAlloc{pool}
 {
-    create(name, m_stackAlloc.getPtr(), pool.blockSize(), priority, preamptionThresh, timeSlice, startType);
+    create(name, m_stackAlloc.get(), pool.blockSize(), priority, preamptionThresh, timeSlice, startType);
 }
 } // namespace ThreadX
 
