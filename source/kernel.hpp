@@ -1,6 +1,7 @@
 #pragma once
 
 #include "txCommon.hpp"
+#include <atomic>
 
 namespace ThreadX::Native
 {
@@ -31,7 +32,7 @@ class CriticalSection
     static void unlock();
 
   private:
-    static inline bool locked;
+    static inline std::atomic_flag m_locked = ATOMIC_FLAG_INIT;
     static inline Native::TX_INTERRUPT_SAVE_AREA
 };
 

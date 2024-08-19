@@ -14,20 +14,19 @@ CriticalSection::~CriticalSection()
 
 void CriticalSection::lock()
 {
-    if (not locked)
+    if (not m_locked.test_and_set())
     {
         using namespace Native;
         TX_DISABLE
-        locked = true;
     }
 }
 
 void CriticalSection::unlock()
 {
-    if (locked)
+    if (m_locked.test())
     {
-        locked = false;
-        Native::TX_RESTORE
+        Native::TX_RESTORE;
+        m_locked.clear();
     }
 }
 

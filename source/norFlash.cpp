@@ -24,8 +24,7 @@ void NorFlashBase::init(std::span<ThreadX::Ulong> extendedCacheMemory, const Thr
         ThreadX::Native::lx_nor_flash_initialize();
     }
 
-    auto cacheSize{extendedCacheMemory.size()};
-    if (cacheSize > 0)
+    if (auto cacheSize{extendedCacheMemory.size()}; cacheSize > 0)
     {
         [[maybe_unused]] Error error{lx_nor_flash_extended_cache_enable(this, extendedCacheMemory.data(), cacheSize)};
         assert(error == Error::success);
@@ -87,8 +86,7 @@ Error NorFlashBase::writeSector(
 
 ThreadX::Uint NorFlashBase::DriverCallbacks::initialise(ThreadX::Native::LX_NOR_FLASH *norFlashPtr)
 {
-    auto &norFlash{static_cast<NorFlashBase &>(*norFlashPtr)};
-    if (norFlash.m_driver.initialiseCallback)
+    if (auto &norFlash{static_cast<NorFlashBase &>(*norFlashPtr)}; norFlash.m_driver.initialiseCallback)
     {
         return norFlash.m_driver.initialiseCallback(norFlashPtr);
     }
@@ -129,8 +127,7 @@ ThreadX::Uint NorFlashBase::DriverCallbacks::verifyErasedBlock(
 ThreadX::Uint NorFlashBase::DriverCallbacks::systemError(
     ThreadX::Native::LX_NOR_FLASH *norFlashPtr, ThreadX::Uint errorCode)
 {
-    auto &norFlash{static_cast<NorFlashBase &>(*norFlashPtr)};
-    if (norFlash.m_driver.systemErrorCallback)
+    if (auto &norFlash{static_cast<NorFlashBase &>(*norFlashPtr)}; norFlash.m_driver.systemErrorCallback)
     {
         norFlash.m_driver.systemErrorCallback(norFlashPtr, errorCode);
     }

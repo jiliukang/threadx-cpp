@@ -21,6 +21,11 @@ ThreadBase::~ThreadBase()
 
 Error ThreadBase::registerStackErrorNotifyCallback(const ErrorCallback &stackErrorNotifyCallback)
 {
+    if (Kernel::inThread())
+    {
+        return Error::notDone;
+    }
+
     Error error{
         tx_thread_stack_error_notify(stackErrorNotifyCallback ? ThreadBase::stackErrorNotifyCallback : nullptr)};
     if (error == Error::success)
