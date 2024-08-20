@@ -127,14 +127,14 @@ class ThreadBase : Native::TX_THREAD
   protected:
     explicit ThreadBase(const NotifyCallback &entryExitNotifyCallback);
     ~ThreadBase();
-    void create(const std::string_view name, void *stackPtr, Ulong stackSize, const Uint priority,
+    void create(const std::string_view name, void *const stackPtr, const Ulong stackSize, const Uint priority,
                 const Uint preamptionThresh, const Ulong timeSlice, const StartType startType);
 
   private:
     static void stackErrorNotifyCallback(Native::TX_THREAD *const threadPtr);
     static void entryExitNotifyCallback(auto *const threadPtr, const auto condition);
     static void entryFunction(auto thisPtr);
-    virtual void entryCallback() = 0; // pure virtual class
+    virtual void entryCallback() = 0; // pure virtual
 
     static inline ErrorCallback m_stackErrorNotifyCallback;
     const NotifyCallback m_entryExitNotifyCallback;

@@ -22,6 +22,13 @@ std::string_view BytePoolBase::name() const
     return std::string_view(tx_byte_pool_name);
 }
 
+void BytePoolBase::create(const std::string_view name, void *const poolStartPtr, const Ulong Size)
+{
+    using namespace Native;
+    [[maybe_unused]] Error error{tx_byte_pool_create(this, const_cast<char *>(name.data()), poolStartPtr, Size)};
+    assert(error == Error::success);
+}
+
 BlockPoolBase::BlockPoolBase() : Native::TX_BLOCK_POOL{}
 {
 }
@@ -45,5 +52,12 @@ Error BlockPoolBase::prioritise()
 std::string_view BlockPoolBase::name() const
 {
     return std::string_view(tx_block_pool_name);
+}
+
+void BlockPoolBase::create(const std::string_view name, const Ulong BlockSize, void *const poolStartPtr, const Ulong Size)
+{
+    using namespace Native;
+    [[maybe_unused]] Error error{tx_block_pool_create(this, const_cast<char *>(name.data()), BlockSize, poolStartPtr, Size)};
+    assert(error == Error::success);
 }
 } // namespace ThreadX

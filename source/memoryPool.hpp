@@ -6,7 +6,7 @@
 
 namespace ThreadX
 {
-class BytePoolBase : protected Native::TX_BYTE_POOL
+class BytePoolBase : Native::TX_BYTE_POOL
 {
   public:
     template <class Pool> friend class Allocation;
@@ -24,6 +24,8 @@ class BytePoolBase : protected Native::TX_BYTE_POOL
     explicit BytePoolBase();
     ///
     ~BytePoolBase();
+
+    void create(const std::string_view name, void *const poolStartPtr, const Ulong Size);
 };
 
 constexpr auto BytePoolBase::minimumPoolSize(std::span<const Ulong> memorySizes)
@@ -48,17 +50,17 @@ template <Ulong Size> class BytePool : public BytePoolBase
     explicit BytePool(const std::string_view name);
 
   private:
+    using BytePoolBase::create;
+
     std::array<Ulong, Size / wordSize> m_pool{}; // Ulong alignment
 };
 
 template <Ulong Size> BytePool<Size>::BytePool(const std::string_view name)
 {
-    using namespace Native;
-    [[maybe_unused]] Error error{tx_byte_pool_create(this, const_cast<char *>(name.data()), m_pool.data(), Size)};
-    assert(error == Error::success);
+    create(name, m_pool.data(), Size);
 }
 
-class BlockPoolBase : protected Native::TX_BLOCK_POOL
+class BlockPoolBase : Native::TX_BLOCK_POOL
 {
   public:
     template <class Pool> friend class Allocation;
@@ -76,6 +78,8 @@ class BlockPoolBase : protected Native::TX_BLOCK_POOL
     explicit BlockPoolBase();
     ///
     ~BlockPoolBase();
+
+    void create(const std::string_view name, const Ulong BlockSize, void *const poolStartPtr, const Ulong Size);
 };
 
 template <Ulong Size, Ulong BlockSize> class BlockPool : public BlockPoolBase
@@ -89,15 +93,14 @@ template <Ulong Size, Ulong BlockSize> class BlockPool : public BlockPoolBase
     explicit BlockPool(const std::string_view name);
 
   private:
+    using BlockPoolBase::create;
+
     std::array<Ulong, Size / wordSize> m_pool{}; // Ulong alignment
 };
 
 template <Ulong Size, Ulong BlockSize> BlockPool<Size, BlockSize>::BlockPool(const std::string_view name)
 {
-    using namespace Native;
-    [[maybe_unused]] Error error{
-        tx_block_pool_create(this, const_cast<char *>(name.data()), BlockSize, m_pool.data(), Size)};
-    assert(error == Error::success);
+    create(name, BlockSize, m_pool.data(), Size);
 }
 
 template <class Pool> class Allocation

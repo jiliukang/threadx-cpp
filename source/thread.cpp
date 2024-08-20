@@ -36,7 +36,7 @@ Error ThreadBase::registerStackErrorNotifyCallback(const ErrorCallback &stackErr
     return error;
 }
 
-void ThreadBase::create(const std::string_view name, void *stackPtr, Ulong stackSize, const Uint priority,
+void ThreadBase::create(const std::string_view name, void *const stackPtr, const Ulong stackSize, const Uint priority,
                         const Uint preamptionThresh, const Ulong timeSlice, const StartType startType)
 {
     using namespace Native;
