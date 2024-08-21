@@ -32,12 +32,11 @@ class NorFlashBase : ThreadX::Native::LX_NOR_FLASH
     static constexpr ThreadX::Uint m_sectorSizeInWord = LX_NATIVE_NOR_SECTOR_SIZE;
     static constexpr FileX::SectorSize sectorSize();
 
-    explicit NorFlashBase(const Driver &driver);
+    explicit NorFlashBase(const Driver &driver, const ThreadX::Ulong storageSize, const ThreadX::Ulong blockSize,
+                          const ThreadX::Ulong baseAddress);
     ~NorFlashBase();
 
     ThreadX::Ulong formatSize() const;
-    Error open();
-    Error close();
     Error defragment();
     Error defragment(const ThreadX::Uint numberOfBlocks);
     Error readSector(const ThreadX::Ulong sectorNumber, std::span<ThreadX::Ulong, m_sectorSizeInWord> sectorData);
@@ -45,8 +44,7 @@ class NorFlashBase : ThreadX::Native::LX_NOR_FLASH
     Error writeSector(const ThreadX::Ulong sectorNumber, std::span<ThreadX::Ulong, m_sectorSizeInWord> sectorData);
 
   protected:
-    void init(std::span<ThreadX::Ulong> extendedCacheMemory, const ThreadX::Ulong storageSize,
-              const ThreadX::Ulong blockSize, const ThreadX::Ulong baseAddress);
+    void init(std::span<ThreadX::Ulong> extendedCacheMemory);
 
   private:
     struct DriverCallbacks
@@ -64,6 +62,10 @@ class NorFlashBase : ThreadX::Native::LX_NOR_FLASH
 
     static inline std::atomic_flag m_initialised = ATOMIC_FLAG_INIT;
     Driver m_driver;
+    std::span<ThreadX::Ulong> m_extendedCacheMemory{};
+    const ThreadX::Ulong m_storageSize;
+    const ThreadX::Ulong m_blockSize;
+    const ThreadX::Ulong m_baseAddress;
     std::array<ThreadX::Ulong, m_sectorSizeInWord> m_sectorBuffer{};
 };
 
@@ -89,8 +91,8 @@ template <ThreadX::Ulong CacheSize = 0> class NorFlash : public NorFlashBase
 template <ThreadX::Ulong CacheSize>
 NorFlash<CacheSize>::NorFlash(const ThreadX::Ulong storageSize, const ThreadX::Ulong blockSize, const Driver &driver,
                               const ThreadX::Ulong baseAddress)
-    : NorFlashBase{driver}
+    : NorFlashBase{driver, storageSize, blockSize, baseAddress}
 {
-    init(m_extendedCacheMemory, storageSize, blockSize, baseAddress);
+    init(m_extendedCacheMemory);
 }
 } // namespace LevelX

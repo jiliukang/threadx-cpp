@@ -3,18 +3,10 @@
 
 namespace LevelX
 {
-NorFlashBase::NorFlashBase(const Driver &driver) : ThreadX::Native::LX_NOR_FLASH{}, m_driver{driver}
-{
-}
-
-NorFlashBase::~NorFlashBase()
-{
-    [[maybe_unused]] Error error{close()};
-    assert(error == Error::success);
-}
-
-void NorFlashBase::init(std::span<ThreadX::Ulong> extendedCacheMemory, const ThreadX::Ulong storageSize,
-                        const ThreadX::Ulong blockSize, const ThreadX::Ulong baseAddress)
+NorFlashBase::NorFlashBase(const Driver &driver, const ThreadX::Ulong storageSize, const ThreadX::Ulong blockSize,
+                           const ThreadX::Ulong baseAddress)
+    : ThreadX::Native::LX_NOR_FLASH{}, m_driver{driver}, m_storageSize{storageSize}, m_blockSize{blockSize},
+      m_baseAddress{baseAddress}
 {
     assert(storageSize % blockSize == 0);
     assert(blockSize % (m_sectorSizeInWord * ThreadX::wordSize) == 0);
@@ -23,38 +15,25 @@ void NorFlashBase::init(std::span<ThreadX::Ulong> extendedCacheMemory, const Thr
     {
         ThreadX::Native::lx_nor_flash_initialize();
     }
+}
 
-    if (auto cacheSize{extendedCacheMemory.size()}; cacheSize > 0)
-    {
-        [[maybe_unused]] Error error{lx_nor_flash_extended_cache_enable(this, extendedCacheMemory.data(), cacheSize)};
-        assert(error == Error::success);
-    }
+NorFlashBase::~NorFlashBase()
+{
+    [[maybe_unused]] Error error{lx_nor_flash_close(this)};
+    assert(error == Error::success);
+}
 
-    lx_nor_flash_driver_read = DriverCallbacks::read;
-    lx_nor_flash_driver_write = DriverCallbacks::write;
-    lx_nor_flash_driver_block_erase = DriverCallbacks::eraseBlock;
-    lx_nor_flash_driver_block_erased_verify = DriverCallbacks::verifyErasedBlock;
-    lx_nor_flash_driver_system_error = DriverCallbacks::systemError;
+void NorFlashBase::init(std::span<ThreadX::Ulong> extendedCacheMemory)
+{
+    m_extendedCacheMemory = extendedCacheMemory;
 
-    lx_nor_flash_base_address = reinterpret_cast<ThreadX::Ulong *>(baseAddress);
-    lx_nor_flash_total_blocks = storageSize / blockSize;
-    lx_nor_flash_words_per_block = blockSize / ThreadX::wordSize;
-    lx_nor_flash_sector_buffer = m_sectorBuffer.data();
+    [[maybe_unused]] Error error{lx_nor_flash_open(this, const_cast<char *>("nor flash"), DriverCallbacks::initialise)};
+    assert(error == Error::success);
 }
 
 ThreadX::Ulong NorFlashBase::formatSize() const
 {
     return (lx_nor_flash_total_blocks - 1) * (lx_nor_flash_words_per_block * ThreadX::wordSize);
-}
-
-Error NorFlashBase::open()
-{
-    return Error{lx_nor_flash_open(this, const_cast<char *>("nor flash"), DriverCallbacks::initialise)};
-}
-
-Error NorFlashBase::close()
-{
-    return Error{lx_nor_flash_close(this)};
 }
 
 Error NorFlashBase::defragment()
@@ -86,10 +65,33 @@ Error NorFlashBase::writeSector(
 
 ThreadX::Uint NorFlashBase::DriverCallbacks::initialise(ThreadX::Native::LX_NOR_FLASH *norFlashPtr)
 {
-    if (auto &norFlash{static_cast<NorFlashBase &>(*norFlashPtr)}; norFlash.m_driver.initialiseCallback)
+    auto &norFlash{static_cast<NorFlashBase &>(*norFlashPtr)};
+    if (norFlash.m_driver.initialiseCallback)
     {
-        return norFlash.m_driver.initialiseCallback(norFlashPtr);
+        auto error{norFlash.m_driver.initialiseCallback(norFlashPtr)};
+        if (error != LX_SUCCESS)
+        {
+            return error;
+        }
     }
+
+    if (auto cacheSize{norFlash.m_extendedCacheMemory.size()}; cacheSize > 0)
+    {
+        [[maybe_unused]] Error error{lx_nor_flash_extended_cache_enable(
+            std::addressof(norFlash), norFlash.m_extendedCacheMemory.data(), cacheSize)};
+        assert(error == Error::success);
+    }
+
+    norFlash.lx_nor_flash_driver_read = DriverCallbacks::read;
+    norFlash.lx_nor_flash_driver_write = DriverCallbacks::write;
+    norFlash.lx_nor_flash_driver_block_erase = DriverCallbacks::eraseBlock;
+    norFlash.lx_nor_flash_driver_block_erased_verify = DriverCallbacks::verifyErasedBlock;
+    norFlash.lx_nor_flash_driver_system_error = DriverCallbacks::systemError;
+
+    norFlash.lx_nor_flash_base_address = reinterpret_cast<ThreadX::Ulong *>(norFlash.m_baseAddress);
+    norFlash.lx_nor_flash_total_blocks = norFlash.m_storageSize / norFlash.m_blockSize;
+    norFlash.lx_nor_flash_words_per_block = norFlash.m_blockSize / ThreadX::wordSize;
+    norFlash.lx_nor_flash_sector_buffer = norFlash.m_sectorBuffer.data();
 
     return LX_SUCCESS;
 }
