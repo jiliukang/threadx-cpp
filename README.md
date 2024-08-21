@@ -1,7 +1,7 @@
 # ThreadX Cpp wrapper APIs
 This is written based on [threadx-mcpp](https://github.com/IntergatedCircuits/threadx-mcpp).
 
-It covers all ThreadX APIs (except performance info) and most of FileX and LevelX APIs.
+It covers all ThreadX APIs (except performance info), common FileX APIs and LevelX NOR flash APIs.
 
 ## Compatibility
 C++23 and above.
