@@ -10,7 +10,7 @@ MediaBase::MediaBase() : ThreadX::Native::FX_MEDIA{}
 MediaBase::~MediaBase()
 {
     [[maybe_unused]] Error error{fx_media_close(this)};
-    assert(error == Error::success);
+    assert(error == Error::success || error == Error::mediaNotOpen);
 }
 
 Error MediaBase::volume(const std::string_view volumeName)
