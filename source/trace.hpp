@@ -59,59 +59,94 @@ inline Ulong operator|(const Ulong eventType1, const TraceEvent eventType2)
     return eventType1 | std::to_underlying(eventType2);
 }
 
-class TraceBase
-{
-  public:
-    TraceBase &operator=(const TraceBase &) = delete;
-    TraceBase(const TraceBase &) = delete;
-
-    static Error eventFilter(const Ulong eventBits);
-
-    static Error eventUnfilter(const Ulong eventBits);
-
-    static Error eventFilter(const TraceEvent event);
-
-    static Error eventUnfilter(const TraceEvent event);
-
-    static Error disable();
-
-    static void isrEnterInsert(const Ulong isrID);
-
-    static void isrExitInsert(const Ulong isrID);
-
-    static Error userEventInsert(const Ulong eventID, const Ulong infoField1, const Ulong infoField2,
-                                 const Ulong infoField3, const Ulong infoField4);
-
-  protected:
-    TraceBase() = default;
-};
-
 ///
-template <Ulong Size> class Trace : public TraceBase
+template <Ulong Size> class Trace
 {
   public:
-    using Callback = void (*)(void *);
+    Trace &operator=(const Trace &) = delete;
+    Trace(const Trace &) = delete;
 
     ///
     /// \param registryEntries
     /// \param bufferFullNotifyCallback passed pointer to callback is TX_TRACE_HEADER pointer.
     /// \return
-    explicit Trace(const Ulong registryEntries, const Callback bufferFullNotifyCallback = {});
+    explicit Trace(const Ulong registryEntries);
+
+    static auto eventFilter(const Ulong eventBits);
+
+    static auto eventUnfilter(const Ulong eventBits);
+
+    static auto eventFilter(const TraceEvent event);
+
+    static auto eventUnfilter(const TraceEvent event);
+
+    static auto disable();
+
+    static auto isrEnterInsert(const Ulong isrID);
+
+    static auto isrExitInsert(const Ulong isrID);
+
+    static auto userEventInsert(const Ulong eventID, const Ulong infoField1, const Ulong infoField2,
+                                const Ulong infoField3, const Ulong infoField4);
 
   private:
     std::array<Uchar, Size> m_trace{};
 };
 
-template <Ulong Size> Trace<Size>::Trace(const Ulong registryEntries, const Callback bufferFullNotifyCallback)
+template <Ulong Size> Trace<Size>::Trace(const Ulong registryEntries)
 {
     [[maybe_unused]] Error error{Native::tx_trace_enable(m_trace.data(), Size, registryEntries)};
     assert(error == Error::success);
+}
 
-    if (bufferFullNotifyCallback)
-    {
-        error = Error{Native::tx_trace_buffer_full_notify(bufferFullNotifyCallback)};
-        assert(error == Error::success);
-    }
+template <Ulong Size> auto Trace<Size>::eventFilter(const Ulong eventBits)
+{
+    return Error{Native::tx_trace_event_filter(eventBits)};
+}
+
+template <Ulong Size> auto Trace<Size>::eventUnfilter(const Ulong eventBits)
+{
+    return Error{Native::tx_trace_event_unfilter(eventBits)};
+}
+
+template <Ulong Size> auto Trace<Size>::eventFilter(const TraceEvent event)
+{
+    return Error{Native::tx_trace_event_filter(std::to_underlying(event))};
+}
+
+template <Ulong Size> auto Trace<Size>::eventUnfilter(const TraceEvent event)
+{
+    return Error{Native::tx_trace_event_unfilter(std::to_underlying(event))};
+}
+
+template <Ulong Size> auto Trace<Size>::disable()
+{
+    return Error{Native::tx_trace_disable()};
+}
+
+template <Ulong Size> auto Trace<Size>::isrEnterInsert(const Ulong isrID)
+{
+    Native::tx_trace_isr_enter_insert(isrID);
+}
+
+template <Ulong Size> auto Trace<Size>::isrExitInsert(const Ulong isrID)
+{
+    Native::tx_trace_isr_exit_insert(isrID);
+}
+
+template <Ulong Size>
+auto Trace<Size>::userEventInsert(
+    const Ulong eventID, const Ulong infoField1, const Ulong infoField2, const Ulong infoField3, const Ulong infoField4)
+{
+    assert(eventID >= TX_TRACE_USER_EVENT_START and eventID <= TX_TRACE_USER_EVENT_END);
+    return Error{Native::tx_trace_user_event_insert(eventID, infoField1, infoField2, infoField3, infoField4)};
+}
+
+using TraceBufFullNotifyCallback = void (*)(void *);
+
+inline auto registerbufFullNotifyCallback(const TraceBufFullNotifyCallback bufferFullNotifyCallback)
+{
+    return Error{Native::tx_trace_buffer_full_notify(bufferFullNotifyCallback)};
 }
 } // namespace ThreadX
 #endif

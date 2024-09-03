@@ -7,34 +7,30 @@
 
 namespace ThreadX
 {
-class QueueBaseBase : protected Native::TX_QUEUE
-{
-  public:
-    QueueBaseBase(const QueueBaseBase &) = delete;
-    QueueBaseBase &operator=(const QueueBaseBase &) = delete;
-    /// This service places the highest priority thread suspended for a message (or to place a message) on this queue at
-    /// the front of the suspension list. All other threads remain in the same FIFO order they were suspended in.
-    Error prioritise();
-    /// delete all messages
-    Error flush();
-
-    std::string_view name() const;
-
-  protected:
-    explicit QueueBaseBase();
-    ~QueueBaseBase();
-};
-
-///
-/// \tparam Msg message structure type
-template <typename Msg> class QueueBase : public QueueBaseBase
+template <typename Msg, class Pool> class Queue : Native::TX_QUEUE
 {
   public:
     /// external Notifycallback type
-    using NotifyCallback = std::function<void(QueueBase &)>;
+    using NotifyCallback = std::function<void(Queue &)>;
     using MsgPair = std::pair<Error, Msg>;
 
+    Queue(const Queue &) = delete;
+    Queue &operator=(const Queue &) = delete;
+
     static constexpr size_t messageSize();
+
+    ///
+    /// \param pool byte pool to allocate queue in.
+    /// \param queueSizeInNumOfMessages max num of messages in queue.
+    /// \param sendNotifyCallback function to call when a message sent to queue.
+    /// The Notifycallback is not allowed to call any ThreadX API with a suspension option.
+    explicit Queue(const std::string_view name, Pool &pool, const Ulong queueSizeInNumOfMessages,
+                   const NotifyCallback &sendNotifyCallback = {})
+        requires(std::is_base_of_v<BytePoolBase, Pool>);
+    explicit Queue(const std::string_view name, Pool &pool, const NotifyCallback sendNotifyCallback = {})
+        requires(std::is_base_of_v<BlockPoolBase, Pool>);
+
+    ~Queue();
 
     auto receive();
 
@@ -47,7 +43,7 @@ template <typename Msg> class QueueBase : public QueueBaseBase
     /// receive a message from queue
     /// \param duration
     /// \return
-    template <typename Rep, typename Period> MsgPair tryReceiveFor(const std::chrono::duration<Rep, Period> &duration);
+    template <typename Rep, typename Period> auto tryReceiveFor(const std::chrono::duration<Rep, Period> &duration);
 
     auto send(const Msg &message);
 
@@ -78,85 +74,112 @@ template <typename Msg> class QueueBase : public QueueBaseBase
     template <typename Rep, typename Period>
     auto trySendFrontFor(const Msg &message, const std::chrono::duration<Rep, Period> &duration);
 
-  protected:
-    explicit QueueBase(const auto &sendNotifyCallback);
-    auto create(const std::string_view name, const Ulong queueSizeInBytes, void *const queueStartPtr);
+    /// This service places the highest priority thread suspended for a message (or to place a message) on this queue at
+    /// the front of the suspension list. All other threads remain in the same FIFO order they were suspended in.
+    auto prioritise();
+    /// delete all messages
+    auto flush();
+
+    auto name() const;
 
   private:
     static auto sendNotifyCallback(auto queuePtr);
+    auto init(const std::string_view name, const Ulong queueSizeInBytes);
 
+    Allocation<Pool> m_queueAlloc;
     const NotifyCallback m_sendNotifyCallback;
 };
 
-template <typename Msg> constexpr size_t QueueBase<Msg>::messageSize()
+template <typename Msg, class Pool>
+Queue<Msg, Pool>::Queue(const std::string_view name, Pool &pool, const Ulong queueSizeInNumOfMessages,
+                        const NotifyCallback &sendNotifyCallback)
+    requires(std::is_base_of_v<BytePoolBase, Pool>)
+    : Native::TX_QUEUE{}, m_queueAlloc{pool, queueSizeInNumOfMessages * sizeof(Msg)},
+      m_sendNotifyCallback{sendNotifyCallback}
 {
-    return sizeof(Msg);
+    init(name, queueSizeInNumOfMessages * sizeof(Msg));
 }
 
-template <typename Msg>
-QueueBase<Msg>::QueueBase(const auto &sendNotifyCallback) : m_sendNotifyCallback{sendNotifyCallback}
+template <typename Msg, class Pool>
+Queue<Msg, Pool>::Queue(const std::string_view name, Pool &pool, const NotifyCallback sendNotifyCallback)
+    requires(std::is_base_of_v<BlockPoolBase, Pool>)
+    : Native::TX_QUEUE{}, m_queueAlloc{pool}, m_sendNotifyCallback{sendNotifyCallback}
 {
+    assert(pool.blockSize() % sizeof(Msg) == 0);
+
+    init(name, pool.blockSize());
 }
 
-template <typename Msg>
-auto QueueBase<Msg>::create(const std::string_view name, const Ulong queueSizeInBytes, void *const queueStartPtr)
+template <typename Msg, class Pool>
+auto Queue<Msg, Pool>::init(const std::string_view name, const Ulong queueSizeInBytes)
 {
     static_assert(sizeof(Msg) % sizeof(wordSize) == 0, "Queue message size must be a multiple of word size.");
 
     using namespace Native;
     [[maybe_unused]] Error error{tx_queue_create(
-        this, const_cast<char *>(name.data()), sizeof(Msg) / sizeof(wordSize), queueStartPtr, queueSizeInBytes)};
+        this, const_cast<char *>(name.data()), sizeof(Msg) / sizeof(wordSize), m_queueAlloc.get(), queueSizeInBytes)};
     assert(error == Error::success);
 
     if (m_sendNotifyCallback)
     {
-        error = Error{tx_queue_send_notify(this, QueueBase::sendNotifyCallback)};
+        error = Error{tx_queue_send_notify(this, Queue::sendNotifyCallback)};
         assert(error == Error::success);
     }
 }
 
-template <typename Msg> auto QueueBase<Msg>::receive()
+template <typename Msg, class Pool> Queue<Msg, Pool>::~Queue()
+{
+    [[maybe_unused]] Error error{tx_queue_delete(this)};
+    assert(error == Error::success);
+}
+
+template <typename Msg, class Pool> constexpr size_t Queue<Msg, Pool>::messageSize()
+{
+    return sizeof(Msg);
+}
+
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::receive()
 {
     return tryReceiveFor(TickTimer::waitForever);
 }
 
 // must be used for calls from initialization, timers, and ISRs
-template <typename Msg> auto QueueBase<Msg>::tryReceive()
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::tryReceive()
 {
     return tryReceiveFor(TickTimer::noWait);
 }
 
-template <typename Msg>
+template <typename Msg, class Pool>
 template <class Clock, typename Duration>
-auto QueueBase<Msg>::tryReceiveUntil(const std::chrono::time_point<Clock, Duration> &time)
+auto Queue<Msg, Pool>::tryReceiveUntil(const std::chrono::time_point<Clock, Duration> &time)
 {
     return tryReceiveFor(time - Clock::now());
 }
 
-template <typename Msg>
+template <typename Msg, class Pool>
 template <typename Rep, typename Period>
-QueueBase<Msg>::MsgPair QueueBase<Msg>::tryReceiveFor(const std::chrono::duration<Rep, Period> &duration)
+auto Queue<Msg, Pool>::tryReceiveFor(const std::chrono::duration<Rep, Period> &duration)
 {
     Msg message;
     Error error{tx_queue_receive(
         this, std::addressof(message), TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
-    return {error, message};
+    return MsgPair{error, message};
 }
 
-template <typename Msg> auto QueueBase<Msg>::send(const Msg &message)
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::send(const Msg &message)
 {
     return trySendFor(message, TickTimer::waitForever);
 }
 
 // must be used for calls from initialization, timers, and ISRs
-template <typename Msg> auto QueueBase<Msg>::trySend(const Msg &message)
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::trySend(const Msg &message)
 {
     return trySendFor(message, TickTimer::noWait);
 }
 
-template <typename Msg>
+template <typename Msg, class Pool>
 template <class Clock, typename Duration>
-auto QueueBase<Msg>::trySendUntil(const Msg &message, const std::chrono::time_point<Clock, Duration> &time)
+auto Queue<Msg, Pool>::trySendUntil(const Msg &message, const std::chrono::time_point<Clock, Duration> &time)
 {
     return trySendFor(message, time - Clock::now());
 }
@@ -165,28 +188,28 @@ auto QueueBase<Msg>::trySendUntil(const Msg &message, const std::chrono::time_po
 /// \param duration
 /// \param message
 /// \return
-template <typename Msg>
+template <typename Msg, class Pool>
 template <typename Rep, typename Period>
-auto QueueBase<Msg>::trySendFor(const Msg &message, const std::chrono::duration<Rep, Period> &duration)
+auto Queue<Msg, Pool>::trySendFor(const Msg &message, const std::chrono::duration<Rep, Period> &duration)
 {
     return Error{tx_queue_send(this, std::addressof(const_cast<Msg &>(message)),
                                TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
 }
 
-template <typename Msg> auto QueueBase<Msg>::sendFront(const Msg &message)
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::sendFront(const Msg &message)
 {
     return trySendFrontFor(message, TickTimer::waitForever);
 }
 
 // must be used for calls from initialization, timers, and ISRs
-template <typename Msg> auto QueueBase<Msg>::trySendFront(const Msg &message)
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::trySendFront(const Msg &message)
 {
     return trySendFrontFor(message, TickTimer::noWait);
 }
 
-template <typename Msg>
+template <typename Msg, class Pool>
 template <class Clock, typename Duration>
-auto QueueBase<Msg>::trySendFrontUntil(const Msg &message, const std::chrono::time_point<Clock, Duration> &time)
+auto Queue<Msg, Pool>::trySendFrontUntil(const Msg &message, const std::chrono::time_point<Clock, Duration> &time)
 {
     return trySendFrontFor(message, time - Clock::now());
 }
@@ -195,56 +218,32 @@ auto QueueBase<Msg>::trySendFrontUntil(const Msg &message, const std::chrono::ti
 /// \param duration
 /// \param message
 /// \return
-template <typename Msg>
+template <typename Msg, class Pool>
 template <typename Rep, typename Period>
-auto QueueBase<Msg>::trySendFrontFor(const Msg &message, const std::chrono::duration<Rep, Period> &duration)
+auto Queue<Msg, Pool>::trySendFrontFor(const Msg &message, const std::chrono::duration<Rep, Period> &duration)
 {
     return Error{tx_queue_front_send(this, std::addressof(const_cast<Msg &>(message)),
                                      TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
 }
 
-template <typename Msg> auto QueueBase<Msg>::sendNotifyCallback(auto queuePtr)
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::prioritise()
 {
-    auto &queue{static_cast<QueueBase &>(*queuePtr)};
+    return Error{tx_queue_prioritize(this)};
+}
+
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::flush()
+{
+    return Error{tx_queue_flush(this)};
+}
+
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::name() const
+{
+    return std::string_view{tx_queue_name};
+}
+
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::sendNotifyCallback(auto queuePtr)
+{
+    auto &queue{static_cast<Queue &>(*queuePtr)};
     queue.m_sendNotifyCallback(queue);
-}
-
-template <typename Msg, class Pool> class Queue : public QueueBase<Msg>
-{
-  public:
-    ///
-    /// \param pool byte pool to allocate queue in.
-    /// \param queueSizeInNumOfMessages max num of messages in queue.
-    /// \param sendNotifyCallback function to call when a message sent to queue.
-    /// The Notifycallback is not allowed to call any ThreadX API with a suspension option.
-    explicit Queue(const std::string_view name, Pool &pool, const Ulong queueSizeInNumOfMessages,
-                   const QueueBase<Msg>::NotifyCallback &sendNotifyCallback = {})
-        requires(std::is_base_of_v<BytePoolBase, Pool>);
-    explicit Queue(
-        const std::string_view name, Pool &pool, const QueueBase<Msg>::NotifyCallback sendNotifyCallback = {})
-        requires(std::is_base_of_v<BlockPoolBase, Pool>);
-
-  private:
-    using QueueBase<Msg>::create;
-
-    Allocation<Pool> m_queueAlloc;
-};
-
-template <typename Msg, class Pool>
-Queue<Msg, Pool>::Queue(const std::string_view name, Pool &pool, const Ulong queueSizeInNumOfMessages,
-                        const QueueBase<Msg>::NotifyCallback &sendNotifyCallback)
-    requires(std::is_base_of_v<BytePoolBase, Pool>)
-    : QueueBase<Msg>{sendNotifyCallback}, m_queueAlloc{pool, queueSizeInNumOfMessages * sizeof(Msg)}
-{
-    QueueBase<Msg>::create(name, queueSizeInNumOfMessages * sizeof(Msg), m_queueAlloc.get());
-}
-
-template <typename Msg, class Pool>
-Queue<Msg, Pool>::Queue(
-    const std::string_view name, Pool &pool, const QueueBase<Msg>::NotifyCallback sendNotifyCallback)
-    requires(std::is_base_of_v<BlockPoolBase, Pool>)
-    : QueueBase<Msg>{sendNotifyCallback}, m_queueAlloc{pool}
-{
-    QueueBase<Msg>::create(name, pool.blockSize(), m_queueAlloc.get());
 }
 } // namespace ThreadX

@@ -12,6 +12,14 @@ namespace ThreadX::Native
 
 namespace FileX
 {
+enum class MediaSectorSize : ThreadX::Uint
+{
+    halfAKilobyte = 512,
+    oneKiloByte = halfAKilobyte * 2,
+    twoKiloBytes = oneKiloByte * 2,
+    fourKilobytes = twoKiloBytes * 2
+};
+
 enum class Error : ThreadX::Uint
 {
     success = FX_SUCCESS,
@@ -55,4 +63,6 @@ enum class Error : ThreadX::Uint
     readContinue = FX_READ_CONTINUE,
     invalidState = FX_INVALID_STATE
 };
+
+constexpr auto defaultSectorSize{MediaSectorSize::halfAKilobyte};
 } // namespace FileX

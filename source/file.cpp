@@ -4,22 +4,6 @@
 
 namespace FileX
 {
-File::File(
-    const std::string_view fileName, MediaBase &media, const OpenOption option, NotifyCallback writeNotifyCallback)
-    : ThreadX::Native::FX_FILE{}, m_writeNotifyCallback{writeNotifyCallback}
-{
-    using namespace ThreadX::Native;
-    [[maybe_unused]] Error error{
-        fx_file_open(std::addressof(media), this, const_cast<char *>(fileName.data()), std::to_underlying(option))};
-    assert(error == Error::success);
-
-    if (m_writeNotifyCallback)
-    {
-        error = Error{fx_file_write_notify_set(this, File::writeNotifyCallback)};
-        assert(error == Error::success);
-    }
-}
-
 File::~File()
 {
     [[maybe_unused]] Error error{fx_file_close(this)};
@@ -94,7 +78,7 @@ File::UlongPair File::read(std::span<std::byte> buffer, const ThreadX::Ulong siz
     return {error, actualSize};
 }
 
-void File::writeNotifyCallback(auto notifyFilePtr)
+void File::writeNotifyCallback(ThreadX::Native::FX_FILE *notifyFilePtr)
 {
     auto &file{static_cast<File &>(*notifyFilePtr)};
     file.m_writeNotifyCallback(file);
