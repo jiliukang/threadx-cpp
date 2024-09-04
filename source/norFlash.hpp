@@ -27,7 +27,7 @@ template <ThreadX::Ulong CacheSize = 0> class NorFlash : protected ThreadX::Nati
     explicit NorFlash(
         const ThreadX::Ulong storageSize, const ThreadX::Ulong blockSize, const ThreadX::Ulong baseAddress = 0);
 
-    auto formatSize() const;
+    auto mediaFormatSize() const;
     auto open();
     auto close();
     auto defragment();
@@ -85,7 +85,7 @@ NorFlash<CacheSize>::NorFlash(
     assert(storageSize % blockSize == 0);
     assert(blockSize % (norSectorSizeInWord * ThreadX::wordSize) == 0);
     assert(blockSize / (norSectorSizeInWord * ThreadX::wordSize) >= 2 and
-           blockSize / (norSectorSizeInWord * ThreadX::wordSize) <= 120);
+           blockSize / (norSectorSizeInWord * ThreadX::wordSize) <= 122);
 
     if (not m_initialised.test_and_set())
     {
@@ -99,7 +99,7 @@ template <ThreadX::Ulong CacheSize> NorFlash<CacheSize>::~NorFlash()
     assert(error == Error::success);
 }
 
-template <ThreadX::Ulong CacheSize> auto NorFlash<CacheSize>::formatSize() const
+template <ThreadX::Ulong CacheSize> auto NorFlash<CacheSize>::mediaFormatSize() const
 {
     return ThreadX::Ulong{(lx_nor_flash_total_blocks - 1) * (lx_nor_flash_words_per_block * ThreadX::wordSize)};
 }
