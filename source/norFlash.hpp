@@ -5,6 +5,7 @@
 #include <atomic>
 #include <functional>
 #include <span>
+#include <utility>
 
 namespace LevelX
 {
@@ -26,9 +27,9 @@ template <ThreadX::Ulong CacheSize = 0> class NorFlash : protected ThreadX::Nati
     explicit NorFlash(
         const ThreadX::Ulong storageSize, const ThreadX::Ulong blockSize, const ThreadX::Ulong baseAddress = 0);
 
+    auto formatSize() const;
     auto open();
     auto close();
-    auto formatSize() const;
     auto defragment();
     auto defragment(const ThreadX::Uint numberOfBlocks);
     auto readSector(const ThreadX::Ulong sectorNumber, std::span<ThreadX::Ulong, norSectorSizeInWord> sectorData);
@@ -39,8 +40,11 @@ template <ThreadX::Ulong CacheSize = 0> class NorFlash : protected ThreadX::Nati
 
     virtual Error initialiseCallback();
     virtual Error readCallback(ThreadX::Ulong *flashAddress, ThreadX::Ulong *destination, ThreadX::Ulong words) = 0;
+    //LevelX relies on the driver to verify that the write sector was successful. This is typically done by reading back the programmed value to ensure it matches the requested value to be written.
     virtual Error writeCallback(ThreadX::Ulong *flashAddress, ThreadX::Ulong *source, ThreadX::Ulong words) = 0;
+    //LevelX relies on the driver to examine all bytes of the block to ensure they are erased (contain all ones).
     virtual Error eraseBlockCallback(ThreadX::Ulong block, ThreadX::Ulong eraseCount) = 0;
+    //LevelX relies on the driver to examine all bytes of the specified to ensure they are erased (contain all ones).
     virtual Error verifyErasedBlockCallback(const ThreadX::Ulong block) = 0;
     virtual Error systemErrorCallback(const ThreadX::Uint errorCode);
 
@@ -80,6 +84,8 @@ NorFlash<CacheSize>::NorFlash(
 {
     assert(storageSize % blockSize == 0);
     assert(blockSize % (norSectorSizeInWord * ThreadX::wordSize) == 0);
+    assert(blockSize / (norSectorSizeInWord * ThreadX::wordSize) >= 2 and
+           blockSize / (norSectorSizeInWord * ThreadX::wordSize) <= 120);
 
     if (not m_initialised.test_and_set())
     {
@@ -91,6 +97,11 @@ template <ThreadX::Ulong CacheSize> NorFlash<CacheSize>::~NorFlash()
 {
     [[maybe_unused]] Error error{lx_nor_flash_close(this)};
     assert(error == Error::success);
+}
+
+template <ThreadX::Ulong CacheSize> auto NorFlash<CacheSize>::formatSize() const
+{
+    return ThreadX::Ulong{(lx_nor_flash_total_blocks - 1) * (lx_nor_flash_words_per_block * ThreadX::wordSize)};
 }
 
 template <ThreadX::Ulong CacheSize> auto NorFlash<CacheSize>::open()
@@ -112,11 +123,6 @@ template <ThreadX::Ulong CacheSize> auto NorFlash<CacheSize>::open()
 template <ThreadX::Ulong CacheSize> auto NorFlash<CacheSize>::close()
 {
     return Error{lx_nor_flash_close(this)};
-}
-
-template <ThreadX::Ulong CacheSize> auto NorFlash<CacheSize>::formatSize() const
-{
-    return ThreadX::Ulong{(lx_nor_flash_total_blocks - 1) * (lx_nor_flash_words_per_block * ThreadX::wordSize)};
 }
 
 template <ThreadX::Ulong CacheSize> auto NorFlash<CacheSize>::defragment()

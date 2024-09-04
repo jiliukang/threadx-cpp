@@ -41,7 +41,7 @@ template <MediaSectorSize N = defaultSectorSize> class Media : protected ThreadX
 
     auto open(const std::string_view name, const FaultTolerantMode mode = FaultTolerantMode::enable);
     auto format(const std::string_view volumeName, const ThreadX::Ulong storageSize,
-                const ThreadX::Uint sectorPerCluster = 1, const ThreadX::Uint directoryEntries = 32);
+                const ThreadX::Uint sectorPerCluster = 1, const ThreadX::Uint directoryEntriesFat12_16 = 32);
     auto volume(const std::string_view volumeName);
     auto volume();
     auto createDir(const std::string_view dirName);
