@@ -17,6 +17,28 @@ enum class FaultTolerantMode : bool
     enable
 };
 
+enum class MediaSectorType : ThreadX::Uint
+{
+    unknown = FX_UNKNOWN_SECTOR,
+    boot = FX_BOOT_SECTOR,
+    fat = FX_FAT_SECTOR,
+    dirctory = FX_DIRECTORY_SECTOR,
+    data = FX_DATA_SECTOR
+};
+
+enum class MediaDriverRequest : ThreadX::Uint
+{
+    read = FX_DRIVER_READ,
+    write = FX_DRIVER_WRITE,
+    flush = FX_DRIVER_FLUSH,
+    abort = FX_DRIVER_ABORT,
+    init = FX_DRIVER_INIT,
+    bootRead = FX_DRIVER_BOOT_READ,
+    releaseSectors = FX_DRIVER_RELEASE_SECTORS,
+    bootWrite = FX_DRIVER_BOOT_WRITE,
+    uninit = FX_DRIVER_UNINIT
+};
+
 class MediaBase
 {
   protected:
@@ -25,7 +47,7 @@ class MediaBase
     static inline std::atomic_flag m_fileSystemInitialised = ATOMIC_FLAG_INIT;
 };
 
-template <MediaSectorSize N = defaultSectorSize> class Media : protected ThreadX::Native::FX_MEDIA, MediaBase
+template <MediaSectorSize N = defaultSectorSize> class Media : ThreadX::Native::FX_MEDIA, MediaBase
 {
   public:
     friend class File;
@@ -56,7 +78,6 @@ template <MediaSectorSize N = defaultSectorSize> class Media : protected ThreadX
     auto localDir();
     auto clearLocalDir();
     auto space();
-
     /// This service is typically called when I/O errors are detected
     auto abort();
     auto invalidateCache();
@@ -66,6 +87,20 @@ template <MediaSectorSize N = defaultSectorSize> class Media : protected ThreadX
     auto name() const;
     auto writeSector(const ThreadX::Ulong sectorNo, const std::span<std::byte, std::to_underlying(N)> sectorData);
     auto readSector(const ThreadX::Ulong sectorNo, std::span<std::byte, std::to_underlying(N)> sectorData);
+
+    auto driverInfo();
+    auto driverRequest();
+    auto driverStatus(const Error error);
+    auto driverBuffer();
+    auto driverLogicalSector();
+    auto driverSectors();
+    auto driverPhysicalSector();
+    auto driverPhysicalTrack();
+    auto driverWriteProtect(const bool writeProtect = true);
+    auto driverFreeSectorUpdate(const bool freeSectorUpdate = true);
+    auto driverSystemWrite();
+    auto driverDataSectorRead();
+    auto driverSectorType();
 
     virtual void driverCallback() = 0;
 
@@ -300,6 +335,56 @@ template <MediaSectorSize N>
 auto Media<N>::readSector(const ThreadX::Ulong sectorNo, std::span<std::byte, std::to_underlying(N)> sectorData)
 {
     return Error{fx_media_read(this, sectorNo, sectorData.data())};
+}
+
+template <MediaSectorSize N> auto Media<N>::driverInfo()
+{
+    return fx_media_driver_info;
+}
+
+template <MediaSectorSize N> auto Media<N>::driverRequest()
+{
+    return MediaDriverRequest{fx_media_driver_request};
+}
+template <MediaSectorSize N> auto Media<N>::driverStatus(const Error error)
+{
+    fx_media_driver_status = std::to_underlying(error);
+}
+
+template <MediaSectorSize N> auto Media<N>::driverBuffer()
+{
+    return fx_media_driver_buffer;
+}
+
+template <MediaSectorSize N> auto Media<N>::driverLogicalSector()
+{
+    return fx_media_driver_logical_sector;
+}
+
+template <MediaSectorSize N> auto Media<N>::driverSectors()
+{
+    return fx_media_driver_sectors;
+}
+
+template <MediaSectorSize N> auto Media<N>::driverWriteProtect(const bool writeProtect)
+{
+    fx_media_driver_write_protect = writeProtect;
+}
+template <MediaSectorSize N> auto Media<N>::driverFreeSectorUpdate(const bool freeSectorUpdate)
+{
+    fx_media_driver_free_sector_update = freeSectorUpdate;
+}
+template <MediaSectorSize N> auto Media<N>::driverSystemWrite()
+{
+    return static_cast<bool>(fx_media_driver_system_write);
+}
+template <MediaSectorSize N> auto Media<N>::driverDataSectorRead()
+{
+    return static_cast<bool>(fx_media_driver_data_sector_read);
+}
+template <MediaSectorSize N> auto Media<N>::driverSectorType()
+{
+    return MediaSectorType{fx_media_driver_sector_type};
 }
 
 template <MediaSectorSize N> auto Media<N>::driverCallback(auto mediaPtr)
