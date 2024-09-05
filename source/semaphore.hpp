@@ -15,6 +15,7 @@ class CountingSemaphoreBase : protected Native::TX_SEMAPHORE
 
     Error release(Ulong count);
 
+  private:
     Ulong m_ceiling;
 };
 

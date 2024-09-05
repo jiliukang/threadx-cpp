@@ -159,7 +159,7 @@ template <class Pool> class Thread : Native::TX_THREAD
     auto stackInfo() const;
 
   protected:
-    virtual ~Thread();
+    ~Thread();
 
   private:
     static auto entryFunction(Ulong thisPtr);

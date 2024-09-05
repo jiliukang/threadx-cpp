@@ -56,10 +56,13 @@ template <MediaSectorSize N = defaultSectorSize> class Media : ThreadX::Native::
     using Ulong64Pair = std::pair<Error, ThreadX::Ulong64>;
     using StrPair = std::pair<Error, std::string_view>;
 
-    constexpr MediaSectorSize sectorSize() const;
-
     Media(const Media &) = delete;
     Media &operator=(const Media &) = delete;
+
+    constexpr MediaSectorSize sectorSize() const;
+    //Once initialized by this constructor, the application should call fx_system_date_set and fx_system_time_set to start with an accurate system date and time.
+    explicit Media(std::byte *driverInfoPtr = nullptr, const NotifyCallback &openNotifyCallback = {},
+                   const NotifyCallback &closeNotifyCallback = {});
 
     auto open(const std::string_view name, const FaultTolerantMode mode = FaultTolerantMode::enable);
     auto format(const std::string_view volumeName, const ThreadX::Ulong storageSize,
@@ -105,9 +108,6 @@ template <MediaSectorSize N = defaultSectorSize> class Media : ThreadX::Native::
     virtual void driverCallback() = 0;
 
   protected:
-    //Once initialized by this constructor, the application should call fx_system_date_set and fx_system_time_set to start with an accurate system date and time.
-    explicit Media(std::byte *driverInfoPtr = nullptr, const NotifyCallback &openNotifyCallback = {},
-                   const NotifyCallback &closeNotifyCallback = {});
     virtual ~Media();
 
   private:

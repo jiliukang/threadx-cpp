@@ -55,7 +55,6 @@ class NorFlash : ThreadX::Native::LX_NOR_FLASH, NorFlashBase
     };
 
     static constexpr auto sectorSize();
-
     explicit NorFlash(const ThreadX::Ulong storageSize, const ThreadX::Ulong baseAddress = 0);
 
     auto mediaFormatSize() const;
@@ -80,7 +79,7 @@ class NorFlash : ThreadX::Native::LX_NOR_FLASH, NorFlashBase
     virtual Error systemErrorCallback(const ThreadX::Uint errorCode);
 
   protected:
-    virtual ~NorFlash();
+    ~NorFlash();
 
   private:
     struct DriverCallback
