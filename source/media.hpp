@@ -166,7 +166,7 @@ Media<N>::Media(
 
 template <MediaSectorSize N> Media<N>::~Media()
 {
-    [[maybe_unused]] Error error{fx_media_close(this)};
+    [[maybe_unused]] auto error{close()};
     assert(error == Error::success || error == Error::mediaNotOpen);
 }
 

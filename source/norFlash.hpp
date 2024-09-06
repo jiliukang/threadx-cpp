@@ -3,7 +3,6 @@
 #include "lxCommon.hpp"
 #include <array>
 #include <atomic>
-#include <functional>
 #include <span>
 #include <utility>
 
@@ -11,6 +10,7 @@ namespace LevelX
 {
 static constexpr ThreadX::Uint norSectorSizeInWord{LX_NATIVE_NOR_SECTOR_SIZE};
 static constexpr ThreadX::Ulong norSectorSize{norSectorSizeInWord * ThreadX::wordSize};
+static constexpr ThreadX::Ulong norBootSector{0};
 
 struct NorSectorMetadata
 {
@@ -62,11 +62,11 @@ class NorFlash : ThreadX::Native::LX_NOR_FLASH, NorFlashBase
     auto close();
     auto defragment();
     auto defragment(const ThreadX::Uint numberOfBlocks);
-    auto readSector(const ThreadX::Ulong sectorNumber, std::span<ThreadX::Ulong, norSectorSizeInWord> sectorData);
-    auto readSector(const ThreadX::Ulong sectorNumber, ThreadX::Uchar *const sectorDataPtr);
-    auto releaseSector(const ThreadX::Ulong sectorNumber);
-    auto writeSector(const ThreadX::Ulong sectorNumber, std::span<ThreadX::Ulong, norSectorSizeInWord> sectorData);
-    auto writeSector(const ThreadX::Ulong sectorNumber, ThreadX::Uchar *const sectorDataPtr);
+    auto readSector(const ThreadX::Ulong logicalSector, std::span<ThreadX::Ulong, norSectorSizeInWord> sectorData);
+    auto readSector(const ThreadX::Ulong logicalSector, ThreadX::Uchar *const sectorDataPtr);
+    auto releaseSector(const ThreadX::Ulong logicalSector);
+    auto writeSector(const ThreadX::Ulong logicalSector, std::span<ThreadX::Ulong, norSectorSizeInWord> sectorData);
+    auto writeSector(const ThreadX::Ulong logicalSector, ThreadX::Uchar *const sectorDataPtr);
 
     virtual Error initialiseCallback();
     virtual Error readCallback(ThreadX::Ulong *flashAddress, ThreadX::Ulong *destination, ThreadX::Ulong words) = 0;
@@ -123,7 +123,7 @@ NorFlash<SectorPerBlock, CacheSectors>::NorFlash(const ThreadX::Ulong storageSiz
 
 template <ThreadX::Uint SectorPerBlock, ThreadX::Uint CacheSectors> NorFlash<SectorPerBlock, CacheSectors>::~NorFlash()
 {
-    [[maybe_unused]] Error error{lx_nor_flash_close(this)};
+    [[maybe_unused]] auto error{close()};
     assert(error == Error::success);
 }
 
@@ -169,36 +169,36 @@ auto NorFlash<SectorPerBlock, CacheSectors>::defragment(const ThreadX::Uint numb
 
 template <ThreadX::Uint SectorPerBlock, ThreadX::Uint CacheSectors>
 auto NorFlash<SectorPerBlock, CacheSectors>::readSector(
-    const ThreadX::Ulong sectorNumber, std::span<ThreadX::Ulong, norSectorSizeInWord> sectorData)
+    const ThreadX::Ulong logicalSector, std::span<ThreadX::Ulong, norSectorSizeInWord> sectorData)
 {
-    return Error{lx_nor_flash_sector_read(this, sectorNumber, sectorData.data())};
+    return Error{lx_nor_flash_sector_read(this, logicalSector, sectorData.data())};
 }
 
 template <ThreadX::Uint SectorPerBlock, ThreadX::Uint CacheSectors>
 auto NorFlash<SectorPerBlock, CacheSectors>::readSector(
-    const ThreadX::Ulong sectorNumber, ThreadX::Uchar *const sectorDataPtr)
+    const ThreadX::Ulong logicalSector, ThreadX::Uchar *const sectorDataPtr)
 {
-    return Error{lx_nor_flash_sector_read(this, sectorNumber, sectorDataPtr)};
+    return Error{lx_nor_flash_sector_read(this, logicalSector, sectorDataPtr)};
 }
 
 template <ThreadX::Uint SectorPerBlock, ThreadX::Uint CacheSectors>
-auto NorFlash<SectorPerBlock, CacheSectors>::releaseSector(const ThreadX::Ulong sectorNumber)
+auto NorFlash<SectorPerBlock, CacheSectors>::releaseSector(const ThreadX::Ulong logicalSector)
 {
-    return Error{lx_nor_flash_sector_release(this, sectorNumber)};
-}
-
-template <ThreadX::Uint SectorPerBlock, ThreadX::Uint CacheSectors>
-auto NorFlash<SectorPerBlock, CacheSectors>::writeSector(
-    const ThreadX::Ulong sectorNumber, std::span<ThreadX::Ulong, norSectorSizeInWord> sectorData)
-{
-    return Error{lx_nor_flash_sector_write(this, sectorNumber, sectorData.data())};
+    return Error{lx_nor_flash_sector_release(this, logicalSector)};
 }
 
 template <ThreadX::Uint SectorPerBlock, ThreadX::Uint CacheSectors>
 auto NorFlash<SectorPerBlock, CacheSectors>::writeSector(
-    const ThreadX::Ulong sectorNumber, ThreadX::Uchar *const sectorDataPtr)
+    const ThreadX::Ulong logicalSector, std::span<ThreadX::Ulong, norSectorSizeInWord> sectorData)
 {
-    return Error{lx_nor_flash_sector_write(this, sectorNumber, sectorDataPtr)};
+    return Error{lx_nor_flash_sector_write(this, logicalSector, sectorData.data())};
+}
+
+template <ThreadX::Uint SectorPerBlock, ThreadX::Uint CacheSectors>
+auto NorFlash<SectorPerBlock, CacheSectors>::writeSector(
+    const ThreadX::Ulong logicalSector, ThreadX::Uchar *const sectorDataPtr)
+{
+    return Error{lx_nor_flash_sector_write(this, logicalSector, sectorDataPtr)};
 }
 
 template <ThreadX::Uint SectorPerBlock, ThreadX::Uint CacheSectors>
