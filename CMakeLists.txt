@@ -16,7 +16,7 @@ if(GEN_DOCS MATCHES ON)
         set(DOXYGEN_EXTRACT_ALL YES)
         set(DOXYGEN_GENERATE_TREEVIEW YES)
 
-        file(GLOB HEADER_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/source/*.hpp)
+        file(GLOB HEADER_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/*.hpp)
         doxygen_add_docs(docs ${HEADER_FILES} ALL)
     endif()
     return()
@@ -73,12 +73,12 @@ target_compile_definitions(levelx PRIVATE LX_INCLUDE_USER_DEFINE_FILE)
 set_target_properties(threadx filex levelx PROPERTIES COMPILE_FLAGS -w)
 
 get_filename_component(LIB_ID ${CMAKE_CURRENT_LIST_DIR} NAME)
-file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/source/*.cpp)
+file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
 add_library(${LIB_ID} STATIC ${LIB_SOURCES})
 
 target_include_directories(${LIB_ID}
                            PUBLIC
-                           ${CMAKE_CURRENT_LIST_DIR}/source
+                           ${CMAKE_CURRENT_LIST_DIR}
                            )
 
 target_link_libraries(${LIB_ID}
