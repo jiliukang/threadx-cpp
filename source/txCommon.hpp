@@ -21,7 +21,7 @@ using Ulong64 = Native::ULONG64; //uint64_t
 using Short = Native::SHORT;
 using Ushort = Native::USHORT;
 
-constexpr auto wordSize{sizeof(Ulong)};
+inline constexpr auto wordSize{sizeof(Ulong)};
 static_assert(wordSize >= sizeof(uintptr_t));
 
 enum class Error : Uint

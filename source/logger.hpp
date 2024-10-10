@@ -9,8 +9,8 @@ concept Logger = requires(T t, const T::Type logLevel, const size_t reservedMsgS
                           const std::source_location &location, const std::string_view format, const Args... args,
                           const std::span<const std::byte> buffer) {
     typename T::Type;
-    { T::init(logLevel, reservedMsgSize) } -> std::convertible_to<void>;
-    { T::clear() } -> std::convertible_to<void>;
-    { T::log(logType, location, format, args...) } -> std::convertible_to<void>;
-    { T::log(buffer) } -> std::convertible_to<void>;
+    { T::init(logLevel, reservedMsgSize) } -> std::same_as<void>;
+    { T::clear() } -> std::same_as<void>;
+    { T::log(logType, location, format, args...) } -> std::same_as<void>;
+    { T::log(buffer) } -> std::same_as<void>;
 };

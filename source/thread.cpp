@@ -5,7 +5,7 @@ namespace ThreadX::ThisThread
 {
 ID id()
 {
-    return ID(Native::tx_thread_identify());
+    return reinterpret_cast<ID>(Native::tx_thread_identify());
 }
 
 void yield()

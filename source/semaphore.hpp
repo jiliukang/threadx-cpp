@@ -6,7 +6,6 @@
 
 namespace ThreadX
 {
-///
 class CountingSemaphoreBase : protected Native::TX_SEMAPHORE
 {
   protected:

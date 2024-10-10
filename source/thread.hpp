@@ -62,9 +62,9 @@ enum class ThreadNotifyCondition : Uint
     exit
 };
 
-constexpr Uint defaultPriority{16}; ///
-constexpr Ulong noTimeSlice{};
-constexpr Ulong minimumStackSize{TX_MINIMUM_STACK};
+inline constexpr Uint defaultPriority{16}; ///
+inline constexpr Ulong noTimeSlice{};
+inline constexpr Ulong minimumStackSize{TX_MINIMUM_STACK};
 
 template <class Pool> class Thread : Native::TX_THREAD
 {

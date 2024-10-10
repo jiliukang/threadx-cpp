@@ -59,7 +59,7 @@ template <MediaSectorSize N = defaultSectorSize> class Media : ThreadX::Native::
     Media(const Media &) = delete;
     Media &operator=(const Media &) = delete;
 
-    constexpr MediaSectorSize sectorSize() const;
+    static constexpr MediaSectorSize sectorSize();
     //Once initialized by this constructor, the application should call fx_system_date_set and fx_system_time_set to start with an accurate system date and time.
     explicit Media(std::byte *driverInfoPtr = nullptr, const NotifyCallback &openNotifyCallback = {},
                    const NotifyCallback &closeNotifyCallback = {});
@@ -135,7 +135,7 @@ template <MediaSectorSize N = defaultSectorSize> class Media : ThreadX::Native::
     const ThreadX::Ulong m_mediaMemorySizeInBytes{m_mediaMemory.size() * ThreadX::wordSize};
 };
 
-template <MediaSectorSize N> constexpr MediaSectorSize Media<N>::sectorSize() const
+template <MediaSectorSize N> constexpr MediaSectorSize Media<N>::sectorSize()
 {
     return N;
 }
