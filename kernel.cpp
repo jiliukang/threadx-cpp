@@ -56,8 +56,8 @@ State state()
 
 namespace ThreadX
 {
-void Native::tx_application_define(void *firstUnusedMemory)
+void Native::tx_application_define([[maybe_unused]] void *firstUnusedMemory)
 {
-    application(firstUnusedMemory);
+    application();
 }
 } // namespace ThreadX

@@ -52,5 +52,5 @@ State state();
 
 namespace ThreadX
 {
-[[gnu::weak]] void application(void *firstUnusedMemory);
+[[gnu::weak]] void application();
 }

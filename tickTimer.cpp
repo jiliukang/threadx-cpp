@@ -2,38 +2,9 @@
 
 namespace ThreadX
 {
-void TickTimer::now(const TimePoint &time)
-{
-    Native::tx_time_set(ticks(time.time_since_epoch()));
-}
-
 TickTimer::TimePoint TickTimer::now()
 {
     return TimePoint{Duration{Native::tx_time_get()}};
-}
-
-TickTimer::TimePair TickTimer::to_time_t(const TimePoint &time)
-{
-    using namespace std::chrono;
-    auto frac_ms{time_point_cast<milliseconds>(time) - time_point_cast<milliseconds>(time_point_cast<seconds>(time))};
-    return {duration_cast<seconds>(time.time_since_epoch()).count(), frac_ms.count()};
-}
-
-TickTimer::TimePoint TickTimer::from_time_t(const std::time_t &time)
-{
-    using namespace std::chrono;
-    return time_point_cast<Duration>(std::chrono::time_point<TickTimer, seconds>(seconds{time}));
-}
-
-TickTimer::TmPair TickTimer::to_localtime(const TimePoint &time)
-{
-    auto [t, frac_ms]{to_time_t(time)};
-    return {*std::localtime(std::addressof(t)), frac_ms};
-}
-
-TickTimer::TimePoint TickTimer::from_localtime(const std::tm &localtime)
-{
-    return from_time_t(mktime(const_cast<std::tm *>(std::addressof(localtime))));
 }
 
 TickTimer::~TickTimer()

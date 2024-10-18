@@ -43,7 +43,7 @@ template <typename Msg, class Pool> class Queue : Native::TX_QUEUE
     /// receive a message from queue
     /// \param duration
     /// \return
-    template <typename Rep, typename Period> auto tryReceiveFor(const std::chrono::duration<Rep, Period> &duration);
+    auto tryReceiveFor(const auto &duration);
 
     auto send(const Msg &message);
 
@@ -57,8 +57,7 @@ template <typename Msg, class Pool> class Queue : Native::TX_QUEUE
     /// \param duration
     /// \param message
     /// \return
-    template <typename Rep, typename Period>
-    auto trySendFor(const Msg &message, const std::chrono::duration<Rep, Period> &duration);
+    auto trySendFor(const Msg &message, const auto &duration);
 
     auto sendFront(const Msg &message);
 
@@ -71,8 +70,7 @@ template <typename Msg, class Pool> class Queue : Native::TX_QUEUE
     /// \param duration
     /// \param message
     /// \return
-    template <typename Rep, typename Period>
-    auto trySendFrontFor(const Msg &message, const std::chrono::duration<Rep, Period> &duration);
+    auto trySendFrontFor(const Msg &message, const auto &duration);
 
     /// This service places the highest priority thread suspended for a message (or to place a message) on this queue at
     /// the front of the suspension list. All other threads remain in the same FIFO order they were suspended in.
@@ -156,9 +154,7 @@ auto Queue<Msg, Pool>::tryReceiveUntil(const std::chrono::time_point<Clock, Dura
     return tryReceiveFor(time - Clock::now());
 }
 
-template <typename Msg, class Pool>
-template <typename Rep, typename Period>
-auto Queue<Msg, Pool>::tryReceiveFor(const std::chrono::duration<Rep, Period> &duration)
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::tryReceiveFor(const auto &duration)
 {
     Msg message;
     Error error{tx_queue_receive(
@@ -188,9 +184,7 @@ auto Queue<Msg, Pool>::trySendUntil(const Msg &message, const std::chrono::time_
 /// \param duration
 /// \param message
 /// \return
-template <typename Msg, class Pool>
-template <typename Rep, typename Period>
-auto Queue<Msg, Pool>::trySendFor(const Msg &message, const std::chrono::duration<Rep, Period> &duration)
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::trySendFor(const Msg &message, const auto &duration)
 {
     return Error{tx_queue_send(this, std::addressof(const_cast<Msg &>(message)),
                                TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
@@ -218,9 +212,7 @@ auto Queue<Msg, Pool>::trySendFrontUntil(const Msg &message, const std::chrono::
 /// \param duration
 /// \param message
 /// \return
-template <typename Msg, class Pool>
-template <typename Rep, typename Period>
-auto Queue<Msg, Pool>::trySendFrontFor(const Msg &message, const std::chrono::duration<Rep, Period> &duration)
+template <typename Msg, class Pool> auto Queue<Msg, Pool>::trySendFrontFor(const Msg &message, const auto &duration)
 {
     return Error{tx_queue_front_send(this, std::addressof(const_cast<Msg &>(message)),
                                      TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};

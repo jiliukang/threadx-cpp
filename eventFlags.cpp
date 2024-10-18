@@ -48,16 +48,6 @@ EventFlags::BitmaskPair EventFlags::waitAny(const Bitmask &bitMask, const Option
     return waitAnyFor(bitMask, TickTimer::waitForever, option);
 }
 
-EventFlags::BitmaskPair EventFlags::waitFor(
-    const Bitmask &bitMask, const TickTimer::Duration &duration, const FlagOption flagOption)
-{
-    Ulong actualFlags{};
-    Error error{tx_event_flags_get(this, bitMask.to_ulong(), std::to_underlying(flagOption),
-                                   std::addressof(actualFlags), TickTimer::ticks(duration))};
-
-    return {error, Bitmask{actualFlags}};
-}
-
 std::string_view EventFlags::name() const
 {
     return tx_event_flags_group_name;

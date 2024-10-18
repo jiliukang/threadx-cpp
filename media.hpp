@@ -60,6 +60,7 @@ template <MediaSectorSize N = defaultSectorSize> class Media : ThreadX::Native::
     Media &operator=(const Media &) = delete;
 
     static constexpr MediaSectorSize sectorSize();
+    static auto setFileSystemTime();
     //Once initialized by this constructor, the application should call fx_system_date_set and fx_system_time_set to start with an accurate system date and time.
     explicit Media(std::byte *driverInfoPtr = nullptr, const NotifyCallback &openNotifyCallback = {},
                    const NotifyCallback &closeNotifyCallback = {});
@@ -140,6 +141,27 @@ template <MediaSectorSize N> constexpr MediaSectorSize Media<N>::sectorSize()
     return N;
 }
 
+template <MediaSectorSize N> auto Media<N>::setFileSystemTime()
+{
+    auto time{std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())};
+    auto localTime{*std::localtime(std::addressof(time))};
+
+    if (Error error{
+            ThreadX::Native::fx_system_date_set(localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday)};
+        error != Error::success)
+    {
+        return error;
+    }
+
+    if (Error error{ThreadX::Native::fx_system_time_set(localTime.tm_hour, localTime.tm_min, localTime.tm_sec)};
+        error != Error::success)
+    {
+        return error;
+    }
+
+    return Error::success;
+}
+
 template <MediaSectorSize N>
 Media<N>::Media(
     std::byte *driverInfoPtr, const NotifyCallback &openNotifyCallback, const NotifyCallback &closeNotifyCallback)
@@ -149,6 +171,7 @@ Media<N>::Media(
     if (not m_fileSystemInitialised.test_and_set())
     {
         ThreadX::Native::fx_system_initialize();
+        setFileSystemTime();
     }
 
     if (m_openNotifyCallback)
@@ -403,26 +426,5 @@ template <MediaSectorSize N> auto Media<N>::closeNotifyCallback(auto mediaPtr)
 {
     auto &media{static_cast<Media &>(*mediaPtr)};
     media.m_closeNotifyCallback(media);
-}
-
-template <class Clock, typename Duration> auto fileSystemTime(const std::chrono::time_point<Clock, Duration> &time)
-{
-    auto [localTime, frac_ms]{ThreadX::TickTimer::to_localtime(
-        std::chrono::time_point_cast<ThreadX::TickTimer, ThreadX::TickTimer::Duration>(time))};
-
-    if (Error error{
-            ThreadX::Native::fx_system_date_set(localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday)};
-        error != Error::success)
-    {
-        return error;
-    }
-
-    if (Error error{ThreadX::Native::fx_system_time_set(localTime.tm_hour, localTime.tm_min, localTime.tm_sec)};
-        error != Error::success)
-    {
-        return error;
-    }
-
-    return Error::success;
 }
 } // namespace FileX

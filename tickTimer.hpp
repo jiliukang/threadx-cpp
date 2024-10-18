@@ -41,22 +41,9 @@ class TickTimer : Native::TX_TIMER
     static constexpr Duration waitForever{0xFFFFFFFFUL};
 
     static constexpr auto ticks(const Duration &duration);
-    static constexpr auto ticks(const TimePoint &time);
 
-    /// sets the internal system clock to the specified value.
-    /// \param time
-    static void now(const TimePoint &time);
-
-    /// returns the internal system clock.
+    /// returns the internal tick count.
     static TimePoint now();
-
-    static TimePair to_time_t(const TimePoint &time);
-
-    static TimePoint from_time_t(const std::time_t &time);
-
-    static TmPair to_localtime(const TimePoint &time);
-
-    static TimePoint from_localtime(const std::tm &localtime);
 
     /// Constructor
     // ID zero means no callback and therefore passed callbackID never matches timer objects with no callback
@@ -65,10 +52,9 @@ class TickTimer : Native::TX_TIMER
     /// Use CALLLBACK_BIND to pass callback as any other object's member function.
     /// \param type \sa Type
     /// \param activationType \sa ActivationType
-    template <typename Rep, typename Period>
-    explicit TickTimer(const std::string_view name, const std::chrono::duration<Rep, Period> &timeout,
-                       const ExpirationCallback &expirationCallback = {}, const Type type = Type::Continuous,
-                       const ActivationType activationType = ActivationType::autoActivate);
+    explicit TickTimer(
+        const std::string_view name, const auto &timeout, const ExpirationCallback &expirationCallback = {},
+        const Type type = Type::Continuous, const ActivationType activationType = ActivationType::autoActivate);
 
     /// Destructor. deletes the timer.
     ~TickTimer();
@@ -112,22 +98,15 @@ constexpr auto TickTimer::ticks(const Duration &duration)
     return duration.count();
 }
 
-constexpr auto TickTimer::ticks(const TimePoint &time)
-{
-    return ticks(time.time_since_epoch());
-}
-
-template <typename Rep, typename Period>
-TickTimer::TickTimer(const std::string_view name, const std::chrono::duration<Rep, Period> &timeout,
-                     const ExpirationCallback &expirationCallback, const Type type, const ActivationType activationType)
+TickTimer::TickTimer(const std::string_view name, const auto &timeout, const ExpirationCallback &expirationCallback,
+                     const Type type, const ActivationType activationType)
     : Native::TX_TIMER{}, m_timeout{std::chrono::duration_cast<TickTimer::Duration>(timeout)},
       m_expirationCallback{expirationCallback}, m_id{expirationCallback ? m_idCounter.fetch_add(1) : 0}, m_type{type}
 {
     using namespace Native;
     [[maybe_unused]] Error error{tx_timer_create(
         this, const_cast<char *>(name.data()), m_expirationCallback ? TickTimer::expirationCallback : nullptr,
-        reinterpret_cast<Ulong>(this), ticks(std::chrono::duration_cast<TickTimer::Duration>(timeout)),
-        type == Type::SingleShot ? 0 : ticks(std::chrono::duration_cast<TickTimer::Duration>(timeout)),
+        reinterpret_cast<Ulong>(this), ticks(m_timeout), type == Type::SingleShot ? 0 : ticks(m_timeout),
         std::to_underlying(activationType))};
     assert(error == Error::success);
 }

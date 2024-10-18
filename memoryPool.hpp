@@ -130,13 +130,12 @@ template <class Pool> class Allocation
     Allocation(const Allocation &) = delete;
     Allocation &operator=(const Allocation &) = delete;
 
-    template <typename Rep = TickTimer::rep, typename Period = TickTimer::period>
-    Allocation(Pool &pool, const Ulong memorySizeInBytes,
-               const std::chrono::duration<Rep, Period> &duration = TickTimer::noWait)
+    template <typename Duration = TickTimer::Duration>
+    Allocation(Pool &pool, const Ulong memorySizeInBytes, const Duration &duration = TickTimer::noWait)
         requires(std::is_base_of_v<BytePoolBase, Pool>);
 
-    template <typename Rep = TickTimer::rep, typename Period = TickTimer::period>
-    Allocation(Pool &pool, const std::chrono::duration<Rep, Period> &duration = TickTimer::noWait)
+    template <typename Duration = TickTimer::Duration>
+    Allocation(Pool &pool, const Duration &duration = TickTimer::noWait)
         requires(std::is_base_of_v<BlockPoolBase, Pool>);
 
     auto get();
@@ -152,9 +151,7 @@ template <class Pool> class Allocation
 };
 
 template <class Pool>
-template <typename Rep, typename Period>
-Allocation<Pool>::Allocation(
-    Pool &pool, const Ulong memorySizeInBytes, const std::chrono::duration<Rep, Period> &duration)
+Allocation<Pool>::Allocation(Pool &pool, const Ulong memorySizeInBytes, const auto &duration)
     requires(std::is_base_of_v<BytePoolBase, Pool>)
 {
     [[maybe_unused]] Error error{tx_byte_allocate(
@@ -164,8 +161,7 @@ Allocation<Pool>::Allocation(
 }
 
 template <class Pool>
-template <typename Rep, typename Period>
-Allocation<Pool>::Allocation(Pool &pool, const std::chrono::duration<Rep, Period> &duration)
+Allocation<Pool>::Allocation(Pool &pool, const auto &duration)
     requires(std::is_base_of_v<BlockPoolBase, Pool>)
 {
     [[maybe_unused]] Error error{tx_block_allocate(

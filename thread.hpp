@@ -22,7 +22,7 @@ template <class Clock, typename Duration> auto sleepUntil(const std::chrono::tim
 
 /// causes the calling thread to suspend for the specified time
 /// \param duration
-template <typename Rep, typename Period> auto sleepFor(const std::chrono::duration<Rep, Period> &duration)
+auto sleepFor(const auto &duration)
 {
     return Error{Native::tx_thread_sleep(TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
 }
