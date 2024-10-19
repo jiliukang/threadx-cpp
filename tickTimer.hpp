@@ -138,8 +138,7 @@ auto TickTimer::reset(const auto &timeout, const Type type, const ActivationType
         return error;
     }
 
-    m_timeoutTicks = ticks(timeout);
-    m_type = type;
+    auto timeoutTicks{ticks(timeout)};
 
     error = Error{tx_timer_change(
         this, type == Type::periodicImediate ? 1UL : m_timeoutTicks, type == Type::oneShot ? 0UL : m_timeoutTicks)};
@@ -147,6 +146,10 @@ auto TickTimer::reset(const auto &timeout, const Type type, const ActivationType
     {
         return error;
     }
+
+    m_timeoutTicks = timeoutTicks;
+    m_type = type;
+    m_activationType = activationType;
 
     if (activationType == ActivationType::autoActivate)
     {
