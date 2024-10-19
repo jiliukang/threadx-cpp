@@ -156,7 +156,7 @@ Allocation<Pool>::Allocation(Pool &pool, const Ulong memorySizeInBytes, const au
 {
     [[maybe_unused]] Error error{tx_byte_allocate(
         std::addressof(pool), reinterpret_cast<void **>(std::addressof(memoryPtr)), memorySizeInBytes,
-        TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
+        TickTimer::ticks(duration))};
     assert(error == Error::success);
 }
 
@@ -165,8 +165,7 @@ Allocation<Pool>::Allocation(Pool &pool, const auto &duration)
     requires(std::is_base_of_v<BlockPoolBase, Pool>)
 {
     [[maybe_unused]] Error error{tx_block_allocate(
-        tx_byte_allocate(std::addressof(pool), std::addressof(memoryPtr),
-                         TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration))))};
+        tx_byte_allocate(std::addressof(pool), std::addressof(memoryPtr), TickTimer::ticks(duration)))};
     assert(error == Error::success);
 }
 

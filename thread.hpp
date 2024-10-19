@@ -24,7 +24,7 @@ template <class Clock, typename Duration> auto sleepUntil(const std::chrono::tim
 /// \param duration
 auto sleepFor(const auto &duration)
 {
-    return Error{Native::tx_thread_sleep(TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
+    return Error{Native::tx_thread_sleep(TickTimer::ticks(duration))};
 }
 }; // namespace ThreadX::ThisThread
 

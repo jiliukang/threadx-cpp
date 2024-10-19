@@ -118,9 +118,8 @@ auto EventFlags::waitAnyFor(const Bitmask &bitMask, const auto &duration, const 
 EventFlags::BitmaskPair EventFlags::waitFor(const Bitmask &bitMask, const auto &duration, const FlagOption flagOption)
 {
     Ulong actualFlags{};
-    Error error{tx_event_flags_get(
-        this, bitMask.to_ulong(), std::to_underlying(flagOption), std::addressof(actualFlags),
-        TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
+    Error error{tx_event_flags_get(this, bitMask.to_ulong(), std::to_underlying(flagOption),
+                                   std::addressof(actualFlags), TickTimer::ticks(duration))};
 
     return {error, Bitmask{actualFlags}};
 }

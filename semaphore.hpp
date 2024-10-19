@@ -108,10 +108,9 @@ auto CountingSemaphore<Ceiling>::tryAcquireUntil(const std::chrono::time_point<C
     return tryAcquireFor(time - Clock::now());
 }
 
-template <Ulong Ceiling>
-auto CountingSemaphore<Ceiling>::tryAcquireFor(const auto &duration)
+template <Ulong Ceiling> auto CountingSemaphore<Ceiling>::tryAcquireFor(const auto &duration)
 {
-    return Error{tx_semaphore_get(this, TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
+    return Error{tx_semaphore_get(this, TickTimer::ticks(duration))};
 }
 
 template <Ulong Ceiling> auto CountingSemaphore<Ceiling>::release(const Ulong count)

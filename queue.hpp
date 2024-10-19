@@ -157,8 +157,7 @@ auto Queue<Msg, Pool>::tryReceiveUntil(const std::chrono::time_point<Clock, Dura
 template <typename Msg, class Pool> auto Queue<Msg, Pool>::tryReceiveFor(const auto &duration)
 {
     Msg message;
-    Error error{tx_queue_receive(
-        this, std::addressof(message), TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
+    Error error{tx_queue_receive(this, std::addressof(message), TickTimer::ticks(duration))};
     return MsgPair{error, message};
 }
 
@@ -186,8 +185,7 @@ auto Queue<Msg, Pool>::trySendUntil(const Msg &message, const std::chrono::time_
 /// \return
 template <typename Msg, class Pool> auto Queue<Msg, Pool>::trySendFor(const Msg &message, const auto &duration)
 {
-    return Error{tx_queue_send(this, std::addressof(const_cast<Msg &>(message)),
-                               TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
+    return Error{tx_queue_send(this, std::addressof(const_cast<Msg &>(message)), TickTimer::ticks(duration))};
 }
 
 template <typename Msg, class Pool> auto Queue<Msg, Pool>::sendFront(const Msg &message)
@@ -214,8 +212,7 @@ auto Queue<Msg, Pool>::trySendFrontUntil(const Msg &message, const std::chrono::
 /// \return
 template <typename Msg, class Pool> auto Queue<Msg, Pool>::trySendFrontFor(const Msg &message, const auto &duration)
 {
-    return Error{tx_queue_front_send(this, std::addressof(const_cast<Msg &>(message)),
-                                     TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
+    return Error{tx_queue_front_send(this, std::addressof(const_cast<Msg &>(message)), TickTimer::ticks(duration))};
 }
 
 template <typename Msg, class Pool> auto Queue<Msg, Pool>::prioritise()

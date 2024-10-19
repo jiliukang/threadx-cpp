@@ -23,29 +23,6 @@ Error TickTimer::deactivate()
     return Error{tx_timer_deactivate(this)};
 }
 
-Error TickTimer::change(const Duration &timeout, const ActivationType activationType)
-{
-    return change(timeout, m_type, activationType);
-}
-
-Error TickTimer::change(const Duration &timeout, const Type type, const ActivationType activationType)
-{
-    Error error{deactivate()};
-    assert(error == Error::success);
-
-    error = Error{tx_timer_change(this, ticks(timeout), type == Type::SingleShot ? 0 : ticks(timeout))};
-
-    m_timeout = timeout;
-    m_type = type;
-
-    if (activationType == ActivationType::autoActivate)
-    {
-        activate();
-    }
-
-    return error;
-}
-
 Error TickTimer::reactivate()
 {
     return change(m_timeout);

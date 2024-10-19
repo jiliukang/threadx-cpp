@@ -64,7 +64,7 @@ auto Mutex::try_lock_until(const std::chrono::time_point<Clock, Duration> &time)
 
 auto Mutex::try_lock_for(const auto &duration)
 {
-    return Error{tx_mutex_get(this, TickTimer::ticks(std::chrono::duration_cast<TickTimer::Duration>(duration)))};
+    return Error{tx_mutex_get(this, TickTimer::ticks(duration))};
 }
 
 using LockGuard = std::lock_guard<Mutex>;
