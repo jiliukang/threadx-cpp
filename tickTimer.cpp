@@ -23,9 +23,9 @@ Error TickTimer::deactivate()
     return Error{tx_timer_deactivate(this)};
 }
 
-Error TickTimer::reactivate()
+Error TickTimer::reset()
 {
-    return change(m_timeout);
+    return reset(Duration{m_timeoutTicks}, m_type, m_activationType);
 }
 
 size_t TickTimer::id() const

@@ -15,8 +15,9 @@ class TickTimer : Native::TX_TIMER
     ///
     enum class Type
     {
-        Continuous, ///< Continuous
-        SingleShot  ///< SingleShot
+        periodic, ///< periodic
+        periodicImediate,
+        oneShot ///< oneShot
     };
 
     ///
@@ -54,41 +55,38 @@ class TickTimer : Native::TX_TIMER
     /// \param activationType \sa ActivationType
     explicit TickTimer(
         const std::string_view name, const auto &timeout, const ExpirationCallback &expirationCallback = {},
-        const Type type = Type::Continuous, const ActivationType activationType = ActivationType::autoActivate);
+        const Type type = Type::periodic, const ActivationType activationType = ActivationType::autoActivate);
 
     /// Destructor. deletes the timer.
     ~TickTimer();
 
-    /// activates the specified application timer
-    Error activate();
-
-    /// Deactivate application timer
-    Error deactivate();
-
-    auto change(const auto &timeout, const ActivationType activationType = ActivationType::autoActivate);
-
+    auto reset(const auto &timeout);
+    auto reset(const auto &timeout, const Type type);
+    auto reset(const auto &timeout, const ActivationType activationType);
     /// change timeout or type. The timer must be deactivated prior to calling this service, and activated afterwards.
     /// An expired one-shot timer must be reset via change() before it can be activated again.
     /// \param timeout
     /// \param type
     /// \param activationType
-    auto change(
-        const auto &timeout, const Type type, const ActivationType activationType = ActivationType::autoActivate);
+    auto reset(const auto &timeout, const Type type, const ActivationType activationType);
 
-    Error reactivate();
-
+    /// activates the specified application timer
+    Error activate();
+    /// Deactivate application timer
+    Error deactivate();
+    Error reset();
     size_t id() const;
-
     std::string_view name() const;
 
   private:
     static void expirationCallback(const Ulong timerPtr);
 
     static inline std::atomic_size_t m_idCounter{1}; //id=0 is reserved for timers with no callback
-    Duration m_timeout;
+    rep m_timeoutTicks;
     const ExpirationCallback m_expirationCallback;
     const size_t m_id;
     Type m_type;
+    ActivationType m_activationType;
 };
 
 static_assert(std::chrono::is_clock_v<TickTimer>);
@@ -105,24 +103,34 @@ constexpr auto TickTimer::ticks(const auto &duration)
 
 TickTimer::TickTimer(const std::string_view name, const auto &timeout, const ExpirationCallback &expirationCallback,
                      const Type type, const ActivationType activationType)
-    : Native::TX_TIMER{}, m_timeout{std::chrono::duration_cast<TickTimer::Duration>(timeout)},
-      m_expirationCallback{expirationCallback}, m_id{expirationCallback ? m_idCounter.fetch_add(1) : 0}, m_type{type}
+    : Native::TX_TIMER{}, m_timeoutTicks{ticks(timeout)}, m_expirationCallback{expirationCallback},
+      m_id{expirationCallback ? m_idCounter.fetch_add(1) : 0}, m_type{type}, m_activationType{activationType}
 {
     using namespace Native;
     [[maybe_unused]] Error error{tx_timer_create(
         this, const_cast<char *>(name.data()), m_expirationCallback ? TickTimer::expirationCallback : nullptr,
-        reinterpret_cast<Ulong>(this), ticks(timeout), type == Type::SingleShot ? 0 : ticks(timeout),
-        std::to_underlying(activationType))};
+        reinterpret_cast<Ulong>(this), type == Type::periodicImediate ? 1UL : m_timeoutTicks,
+        type == Type::oneShot ? 0UL : m_timeoutTicks, std::to_underlying(activationType))};
 
     assert(error == Error::success);
 }
 
-auto TickTimer::change(const auto &timeout, const ActivationType activationType)
+auto TickTimer::reset(const auto &timeout)
 {
-    return change(timeout, m_type, activationType);
+    return reset(timeout, m_type, m_activationType);
 }
 
-auto TickTimer::change(const auto &timeout, const Type type, const ActivationType activationType)
+auto TickTimer::reset(const auto &timeout, const Type type)
+{
+    return reset(timeout, type, m_activationType);
+}
+
+auto TickTimer::reset(const auto &timeout, const ActivationType activationType)
+{
+    return reset(timeout, m_type, activationType);
+}
+
+auto TickTimer::reset(const auto &timeout, const Type type, const ActivationType activationType)
 {
     Error error{deactivate()};
     if (error != Error::success)
@@ -130,18 +138,19 @@ auto TickTimer::change(const auto &timeout, const Type type, const ActivationTyp
         return error;
     }
 
-    error = Error{tx_timer_change(this, ticks(timeout), type == Type::SingleShot ? 0 : ticks(timeout))};
+    m_timeoutTicks = ticks(timeout);
+    m_type = type;
+
+    error = Error{tx_timer_change(
+        this, type == Type::periodicImediate ? 1UL : m_timeoutTicks, type == Type::oneShot ? 0UL : m_timeoutTicks)};
     if (error != Error::success)
     {
         return error;
     }
 
-    m_timeout = std::chrono::duration_cast<TickTimer::Duration>(timeout);
-    m_type = type;
-
     if (activationType == ActivationType::autoActivate)
     {
-        activate();
+        return activate();
     }
 
     return Error::success;
