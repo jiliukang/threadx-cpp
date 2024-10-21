@@ -45,7 +45,9 @@ class EventFlags : Native::TX_EVENT_FLAGS_GROUP
     auto waitAllUntil(const Bitmask &bitMask, const std::chrono::time_point<Clock, Duration> &time,
                       const Option option = Option::clear);
 
-    auto waitAllFor(const Bitmask &bitMask, const auto &duration, const Option option = Option::clear);
+    template <typename Rep, typename Period>
+    auto waitAllFor(const Bitmask &bitMask, const std::chrono::duration<Rep, Period> &duration,
+                    const Option option = Option::clear);
 
     BitmaskPair waitAny(const Bitmask &bitMask, const Option option = Option::clear);
 
@@ -53,7 +55,9 @@ class EventFlags : Native::TX_EVENT_FLAGS_GROUP
     auto waitAnyUntil(const Bitmask &bitMask, const std::chrono::time_point<Clock, Duration> &time,
                       const Option option = Option::clear);
 
-    auto waitAnyFor(const Bitmask &bitMask, const auto &duration, const Option option = Option::clear);
+    template <typename Rep, typename Period>
+    auto waitAnyFor(const Bitmask &bitMask, const std::chrono::duration<Rep, Period> &duration,
+                    const Option option = Option::clear);
 
     std::string_view name() const;
 
@@ -86,7 +90,9 @@ auto EventFlags::waitAllUntil(
     return waitAllFor(bitMask, time - Clock::now(), option);
 }
 
-auto EventFlags::waitAllFor(const Bitmask &bitMask, const auto &duration, const Option option)
+template <typename Rep, typename Period>
+auto EventFlags::waitAllFor(
+    const Bitmask &bitMask, const std::chrono::duration<Rep, Period> &duration, const Option option)
 {
     auto flagOption{FlagOption::allClear};
     if (option == Option::dontClear)
@@ -104,7 +110,9 @@ auto EventFlags::waitAnyUntil(
     return waitAnyFor(bitMask, time - Clock::now(), option);
 }
 
-auto EventFlags::waitAnyFor(const Bitmask &bitMask, const auto &duration, const Option option)
+template <typename Rep, typename Period>
+auto EventFlags::waitAnyFor(
+    const Bitmask &bitMask, const std::chrono::duration<Rep, Period> &duration, const Option option)
 {
     auto flagOption{FlagOption::anyClear};
     if (option == Option::dontClear)

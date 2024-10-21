@@ -43,7 +43,7 @@ template <Ulong Ceiling = std::numeric_limits<Ulong>::max()> class CountingSemap
     /// retrieves an instance (a single count) from the specified counting semaphore.
     /// As a result, the specified semaphore's count is decreased by one.
     /// \param duration
-    auto tryAcquireFor(const auto &duration);
+    template <typename Rep, typename Period> auto tryAcquireFor(const std::chrono::duration<Rep, Period> &duration);
 
     ///  puts an instance into the specified counting semaphore, which in reality increments the counting semaphore by
     ///  one. If the counting semaphore's current value is greater than or equal to the specified ceiling, the instance
@@ -108,7 +108,9 @@ auto CountingSemaphore<Ceiling>::tryAcquireUntil(const std::chrono::time_point<C
     return tryAcquireFor(time - Clock::now());
 }
 
-template <Ulong Ceiling> auto CountingSemaphore<Ceiling>::tryAcquireFor(const auto &duration)
+template <Ulong Ceiling>
+template <typename Rep, typename Period>
+auto CountingSemaphore<Ceiling>::tryAcquireFor(const std::chrono::duration<Rep, Period> &duration)
 {
     return Error{tx_semaphore_get(this, TickTimer::ticks(duration))};
 }

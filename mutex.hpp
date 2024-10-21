@@ -41,7 +41,7 @@ class Mutex : Native::TX_MUTEX
 
     template <class Clock, typename Duration> auto try_lock_until(const std::chrono::time_point<Clock, Duration> &time);
 
-    auto try_lock_for(const auto &duration);
+    template <typename Rep, typename Period> auto try_lock_for(const std::chrono::duration<Rep, Period> &duration);
 
     /// decrements the ownership count of the specified mutex.
     /// If the ownership count is zero, the mutex is made available.
@@ -62,7 +62,7 @@ auto Mutex::try_lock_until(const std::chrono::time_point<Clock, Duration> &time)
     return try_lock_for(time - Clock::now());
 }
 
-auto Mutex::try_lock_for(const auto &duration)
+template <typename Rep, typename Period> auto Mutex::try_lock_for(const std::chrono::duration<Rep, Period> &duration)
 {
     return Error{tx_mutex_get(this, TickTimer::ticks(duration))};
 }
