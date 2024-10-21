@@ -138,16 +138,14 @@ auto TickTimer::reset(const auto &timeout, const Type type, const ActivationType
         return error;
     }
 
-    auto timeoutTicks{ticks(timeout)};
-
     error = Error{tx_timer_change(
-        this, type == Type::periodicImediate ? 1UL : m_timeoutTicks, type == Type::oneShot ? 0UL : m_timeoutTicks)};
+        this, type == Type::periodicImediate ? 1UL : ticks(timeout), type == Type::oneShot ? 0UL : ticks(timeout))};
     if (error != Error::success)
     {
         return error;
     }
 
-    m_timeoutTicks = timeoutTicks;
+    m_timeoutTicks = ticks(timeout);
     m_type = type;
     m_activationType = activationType;
 
