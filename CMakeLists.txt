@@ -76,14 +76,5 @@ get_filename_component(LIB_ID ${CMAKE_CURRENT_LIST_DIR} NAME)
 file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
 add_library(${LIB_ID} STATIC ${LIB_SOURCES})
 
-target_include_directories(${LIB_ID}
-                           PUBLIC
-                           ${CMAKE_CURRENT_LIST_DIR}
-                           )
-
-target_link_libraries(${LIB_ID}
-                      PUBLIC
-                      threadx
-                      filex
-                      levelx
-                      )
+target_include_directories(${LIB_ID} INTERFACE ${CMAKE_CURRENT_LIST_DIR})
+target_link_libraries(${LIB_ID} PUBLIC threadx filex levelx)
