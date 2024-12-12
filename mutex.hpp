@@ -68,7 +68,6 @@ template <typename Rep, typename Period> auto Mutex::try_lock_for(const std::chr
 }
 
 using LockGuard = std::lock_guard<Mutex>;
-using ScopedLock = std::scoped_lock<Mutex>;
 using UniqueLock = std::unique_lock<Mutex>;
 
 using timedMutex = Mutex;
