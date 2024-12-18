@@ -94,12 +94,10 @@ template <Ulong Size, Ulong BlockSize> class BlockPool : Native::TX_BLOCK_POOL, 
     std::array<Ulong, Size / wordSize> m_pool{}; // Ulong alignment
 };
 
-template <Ulong Size, Ulong BlockSize>
-BlockPool<Size, BlockSize>::BlockPool(const std::string_view name) : Native::TX_BLOCK_POOL{}
+template <Ulong Size, Ulong BlockSize> BlockPool<Size, BlockSize>::BlockPool(const std::string_view name) : Native::TX_BLOCK_POOL{}
 {
     using namespace Native;
-    [[maybe_unused]] Error error{
-        tx_block_pool_create(this, const_cast<char *>(name.data()), BlockSize, m_pool.data(), Size)};
+    [[maybe_unused]] Error error{tx_block_pool_create(this, const_cast<char *>(name.data()), BlockSize, m_pool.data(), Size)};
     assert(error == Error::success);
 }
 
@@ -131,8 +129,7 @@ template <class Pool> class Allocation
     Allocation &operator=(const Allocation &) = delete;
 
     template <typename Rep = TickTimer::rep, typename Period = TickTimer::period>
-    Allocation(Pool &pool, const Ulong memorySizeInBytes,
-               const std::chrono::duration<Rep, Period> &duration = TickTimer::noWait)
+    Allocation(Pool &pool, const Ulong memorySizeInBytes, const std::chrono::duration<Rep, Period> &duration = TickTimer::noWait)
         requires(std::is_base_of_v<BytePoolBase, Pool>);
 
     template <typename Rep = TickTimer::rep, typename Period = TickTimer::period>
@@ -153,13 +150,10 @@ template <class Pool> class Allocation
 
 template <class Pool>
 template <typename Rep, typename Period>
-Allocation<Pool>::Allocation(
-    Pool &pool, const Ulong memorySizeInBytes, const std::chrono::duration<Rep, Period> &duration)
+Allocation<Pool>::Allocation(Pool &pool, const Ulong memorySizeInBytes, const std::chrono::duration<Rep, Period> &duration)
     requires(std::is_base_of_v<BytePoolBase, Pool>)
 {
-    [[maybe_unused]] Error error{tx_byte_allocate(
-        std::addressof(pool), reinterpret_cast<void **>(std::addressof(memoryPtr)), memorySizeInBytes,
-        TickTimer::ticks(duration))};
+    [[maybe_unused]] Error error{tx_byte_allocate(std::addressof(pool), reinterpret_cast<void **>(std::addressof(memoryPtr)), memorySizeInBytes, TickTimer::ticks(duration))};
     assert(error == Error::success);
 }
 
@@ -168,8 +162,7 @@ template <typename Rep, typename Period>
 Allocation<Pool>::Allocation(Pool &pool, const std::chrono::duration<Rep, Period> &duration)
     requires(std::is_base_of_v<BlockPoolBase, Pool>)
 {
-    [[maybe_unused]] Error error{tx_block_allocate(
-        tx_byte_allocate(std::addressof(pool), std::addressof(memoryPtr), TickTimer::ticks(duration)))};
+    [[maybe_unused]] Error error{tx_block_allocate(tx_byte_allocate(std::addressof(pool), std::addressof(memoryPtr), TickTimer::ticks(duration)))};
     assert(error == Error::success);
 }
 

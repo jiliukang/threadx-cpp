@@ -45,9 +45,7 @@ class File : ThreadX::Native::FX_FILE
     using Ulong64Pair = std::pair<Error, ThreadX::Ulong64>;
     using NotifyCallback = std::function<void(File &)>;
 
-    template <MediaSectorSize N>
-    explicit File(const std::string_view fileName, Media<N> &media, const OpenOption option = OpenOption::read,
-                  NotifyCallback writeNotifyCallback = {});
+    template <MediaSectorSize N> explicit File(const std::string_view fileName, Media<N> &media, const OpenOption option = OpenOption::read, NotifyCallback writeNotifyCallback = {});
     ~File();
     Ulong64Pair allocate(ThreadX::Ulong64 size, AllocateOption option = AllocateOption::strict);
     Error truncate(ThreadX::Ulong64 newSize, TruncateOption option = TruncateOption::noRelease);
@@ -64,14 +62,10 @@ class File : ThreadX::Native::FX_FILE
     const NotifyCallback m_writeNotifyCallback;
 };
 
-template <MediaSectorSize N>
-File::File(
-    const std::string_view fileName, Media<N> &media, const OpenOption option, NotifyCallback writeNotifyCallback)
-    : ThreadX::Native::FX_FILE{}, m_writeNotifyCallback{writeNotifyCallback}
+template <MediaSectorSize N> File::File(const std::string_view fileName, Media<N> &media, const OpenOption option, NotifyCallback writeNotifyCallback) : ThreadX::Native::FX_FILE{}, m_writeNotifyCallback{writeNotifyCallback}
 {
     using namespace ThreadX::Native;
-    [[maybe_unused]] Error error{
-        fx_file_open(std::addressof(media), this, const_cast<char *>(fileName.data()), std::to_underlying(option))};
+    [[maybe_unused]] Error error{fx_file_open(std::addressof(media), this, const_cast<char *>(fileName.data()), std::to_underlying(option))};
     assert(error == Error::success);
 
     if (m_writeNotifyCallback)

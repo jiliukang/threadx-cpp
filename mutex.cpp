@@ -10,8 +10,7 @@ Mutex::Mutex(const InheritMode inheritMode) : Mutex("mutex", inheritMode)
 Mutex::Mutex(const std::string_view name, const InheritMode inheritMode) : Native::TX_MUTEX{}
 {
     using namespace Native;
-    [[maybe_unused]] Error error{
-        tx_mutex_create(this, const_cast<char *>(name.data()), std::to_underlying(inheritMode))};
+    [[maybe_unused]] Error error{tx_mutex_create(this, const_cast<char *>(name.data()), std::to_underlying(inheritMode))};
     assert(error == Error::success);
 }
 

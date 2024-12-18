@@ -56,8 +56,7 @@ class Mutex : Native::TX_MUTEX
     uintptr_t lockingThreadID() const;
 };
 
-template <class Clock, typename Duration>
-auto Mutex::try_lock_until(const std::chrono::time_point<Clock, Duration> &time)
+template <class Clock, typename Duration> auto Mutex::try_lock_until(const std::chrono::time_point<Clock, Duration> &time)
 {
     return try_lock_for(time - Clock::now());
 }

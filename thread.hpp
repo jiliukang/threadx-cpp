@@ -94,15 +94,12 @@ template <class Pool> class Thread : Native::TX_THREAD
     /// \param preamptionThresh
     /// \param timeSlice
     /// \param startType
-    explicit Thread(const std::string_view name, Pool &pool, const Ulong stackSize = minimumStackSize,
-                    const NotifyCallback &entryExitNotifyCallback = {}, const Uint priority = defaultPriority,
-                    const Uint preamptionThresh = defaultPriority, const Ulong timeSlice = noTimeSlice,
-                    const ThreadStartType startType = ThreadStartType::autoStart)
+    explicit Thread(const std::string_view name, Pool &pool, const Ulong stackSize = minimumStackSize, const NotifyCallback &entryExitNotifyCallback = {}, const Uint priority = defaultPriority, const Uint preamptionThresh = defaultPriority,
+                    const Ulong timeSlice = noTimeSlice, const ThreadStartType startType = ThreadStartType::autoStart)
         requires(std::is_base_of_v<BytePoolBase, Pool>);
 
-    explicit Thread(const std::string_view name, Pool &pool, const NotifyCallback &entryExitNotifyCallback = {},
-                    const Uint priority = defaultPriority, const Uint preamptionThresh = defaultPriority,
-                    const Ulong timeSlice = noTimeSlice, const ThreadStartType startType = ThreadStartType::autoStart)
+    explicit Thread(const std::string_view name, Pool &pool, const NotifyCallback &entryExitNotifyCallback = {}, const Uint priority = defaultPriority, const Uint preamptionThresh = defaultPriority, const Ulong timeSlice = noTimeSlice,
+                    const ThreadStartType startType = ThreadStartType::autoStart)
         requires(std::is_base_of_v<BlockPoolBase, Pool>);
 
     /// resumes or prepares for execution a thread that was previously suspended by a suspend() call.
@@ -166,8 +163,7 @@ template <class Pool> class Thread : Native::TX_THREAD
     static auto stackErrorNotifyCallback(Native::TX_THREAD *const threadPtr);
     static auto entryExitNotifyCallback(auto *const threadPtr, const auto condition);
 
-    auto init(const std::string_view name, const ThreadX::Ulong stackSize, const Uint priority,
-              const Uint preamptionThresh, const Ulong timeSlice, const ThreadStartType startType);
+    auto init(const std::string_view name, const ThreadX::Ulong stackSize, const Uint priority, const Uint preamptionThresh, const Ulong timeSlice, const ThreadStartType startType);
 
     virtual void entryCallback() = 0;
 
@@ -195,9 +191,7 @@ template <class Pool> auto Thread<Pool>::registerStackErrorNotifyCallback(const 
 }
 
 template <class Pool>
-Thread<Pool>::Thread(
-    const std::string_view name, Pool &pool, const Ulong stackSize, const NotifyCallback &entryExitNotifyCallback,
-    const Uint priority, const Uint preamptionThresh, const Ulong timeSlice, const ThreadStartType startType)
+Thread<Pool>::Thread(const std::string_view name, Pool &pool, const Ulong stackSize, const NotifyCallback &entryExitNotifyCallback, const Uint priority, const Uint preamptionThresh, const Ulong timeSlice, const ThreadStartType startType)
     requires(std::is_base_of_v<BytePoolBase, Pool>)
     : Native::TX_THREAD{}, m_stackAlloc{pool, stackSize}, m_entryExitNotifyCallback{entryExitNotifyCallback}
 {
@@ -205,23 +199,17 @@ Thread<Pool>::Thread(
 }
 
 template <class Pool>
-Thread<Pool>::Thread(
-    const std::string_view name, Pool &pool, const NotifyCallback &entryExitNotifyCallback, const Uint priority,
-    const Uint preamptionThresh, const Ulong timeSlice, const ThreadStartType startType)
+Thread<Pool>::Thread(const std::string_view name, Pool &pool, const NotifyCallback &entryExitNotifyCallback, const Uint priority, const Uint preamptionThresh, const Ulong timeSlice, const ThreadStartType startType)
     requires(std::is_base_of_v<BlockPoolBase, Pool>)
     : Native::TX_THREAD{}, m_stackAlloc{pool}, m_entryExitNotifyCallback{entryExitNotifyCallback}
 {
     init(name, pool.blockSize(), priority, preamptionThresh, timeSlice, startType);
 }
 
-template <class Pool>
-auto Thread<Pool>::init(const std::string_view name, const ThreadX::Ulong stackSize, const Uint priority,
-                        const Uint preamptionThresh, const Ulong timeSlice, const ThreadStartType startType)
+template <class Pool> auto Thread<Pool>::init(const std::string_view name, const ThreadX::Ulong stackSize, const Uint priority, const Uint preamptionThresh, const Ulong timeSlice, const ThreadStartType startType)
 {
     using namespace Native;
-    [[maybe_unused]] Error error{tx_thread_create(
-        this, const_cast<char *>(name.data()), entryFunction, reinterpret_cast<Ulong>(this), m_stackAlloc.get(),
-        stackSize, priority, preamptionThresh, timeSlice, std::to_underlying(startType))};
+    [[maybe_unused]] Error error{tx_thread_create(this, const_cast<char *>(name.data()), entryFunction, reinterpret_cast<Ulong>(this), m_stackAlloc.get(), stackSize, priority, preamptionThresh, timeSlice, std::to_underlying(startType))};
     assert(error == Error::success);
 
     error = Error{tx_thread_entry_exit_notify(this, Thread::entryExitNotifyCallback)};
@@ -321,7 +309,7 @@ template <class Pool> auto Thread<Pool>::join()
     BinarySemaphore exitSignal("join");
 
     {
-        Kernel::CriticalSection cs; //do not allow any change in thread state until m_exitSignalPtr is assigned.
+        Kernel::CriticalSection cs; // do not allow any change in thread state until m_exitSignalPtr is assigned.
 
         if (not joinable()) // Thread becomes unjoinable just before entryExitNotifyCallback() is called.
         {
@@ -341,8 +329,7 @@ template <class Pool> auto Thread<Pool>::joinable() const
 {
     // wait on itself resource deadlock and wait on finished thread.
     auto threadState{state()};
-    return id() != ThisThread::id() and threadState != ThreadState::completed and
-           threadState != ThreadState::terminated;
+    return id() != ThisThread::id() and threadState != ThreadState::completed and threadState != ThreadState::terminated;
 }
 
 template <class Pool> auto Thread<Pool>::stackInfo() const
@@ -350,8 +337,7 @@ template <class Pool> auto Thread<Pool>::stackInfo() const
     return StackInfo{.size = tx_thread_stack_size,
                      .used = uintptr_t(tx_thread_stack_end) - uintptr_t(tx_thread_stack_ptr) + 1,
                      .maxUsed = uintptr_t(tx_thread_stack_end) - uintptr_t(tx_thread_stack_highest_ptr) + 1,
-                     .maxUsedPercent = (uintptr_t(tx_thread_stack_end) - uintptr_t(tx_thread_stack_highest_ptr) + 1) *
-                                       100 / tx_thread_stack_size}; // As a rule of thumb, keep this below 70%
+                     .maxUsedPercent = (uintptr_t(tx_thread_stack_end) - uintptr_t(tx_thread_stack_highest_ptr) + 1) * 100 / tx_thread_stack_size}; // As a rule of thumb, keep this below 70%
 }
 
 template <class Pool> auto Thread<Pool>::entryFunction(Ulong thisPtr)

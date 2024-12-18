@@ -41,8 +41,7 @@ class TickTimer : Native::TX_TIMER
     static constexpr Duration noWait{0UL};
     static constexpr Duration waitForever{0xFFFFFFFFUL};
 
-    template <typename Rep, typename Period>
-    static constexpr auto ticks(const std::chrono::duration<Rep, Period> &duration);
+    template <typename Rep, typename Period> static constexpr auto ticks(const std::chrono::duration<Rep, Period> &duration);
 
     /// returns the internal tick count.
     static TimePoint now();
@@ -54,26 +53,21 @@ class TickTimer : Native::TX_TIMER
     /// Use CALLLBACK_BIND to pass callback as any other object's member function.
     /// \param type \sa Type
     /// \param activationType \sa ActivationType
-    explicit TickTimer(
-        const std::string_view name, const auto &timeout, const ExpirationCallback &expirationCallback = {},
-        const Type type = Type::periodic, const ActivationType activationType = ActivationType::autoActivate);
+    explicit TickTimer(const std::string_view name, const auto &timeout, const ExpirationCallback &expirationCallback = {}, const Type type = Type::periodic, const ActivationType activationType = ActivationType::autoActivate);
 
     /// Destructor. deletes the timer.
     ~TickTimer();
 
     Error reset();
     template <typename Rep, typename Period> auto reset(const std::chrono::duration<Rep, Period> &timeout);
-    template <typename Rep, typename Period>
-    auto reset(const std::chrono::duration<Rep, Period> &timeout, const Type type);
-    template <typename Rep, typename Period>
-    auto reset(const std::chrono::duration<Rep, Period> &timeout, const ActivationType activationType);
+    template <typename Rep, typename Period> auto reset(const std::chrono::duration<Rep, Period> &timeout, const Type type);
+    template <typename Rep, typename Period> auto reset(const std::chrono::duration<Rep, Period> &timeout, const ActivationType activationType);
     /// change timeout or type. The timer must be deactivated prior to calling this service, and activated afterwards.
     /// An expired one-shot timer must be reset via change() before it can be activated again.
     /// \param timeout
     /// \param type
     /// \param activationType
-    template <typename Rep, typename Period>
-    auto reset(const std::chrono::duration<Rep, Period> &timeout, const Type type, const ActivationType activationType);
+    template <typename Rep, typename Period> auto reset(const std::chrono::duration<Rep, Period> &timeout, const Type type, const ActivationType activationType);
 
     /// activates the specified application timer
     Error activate();
@@ -85,7 +79,7 @@ class TickTimer : Native::TX_TIMER
   private:
     static void expirationCallback(const Ulong timerPtr);
 
-    static inline std::atomic_size_t m_idCounter{}; //id=0 is reserved for timers with no callback
+    static inline std::atomic_size_t m_idCounter{}; // id=0 is reserved for timers with no callback
     rep m_timeoutTicks;
     const ExpirationCallback m_expirationCallback;
     const size_t m_id;
@@ -95,8 +89,7 @@ class TickTimer : Native::TX_TIMER
 
 static_assert(std::chrono::is_clock_v<TickTimer>);
 
-template <typename Rep, typename Period>
-constexpr auto TickTimer::ticks(const std::chrono::duration<Rep, Period> &duration)
+template <typename Rep, typename Period> constexpr auto TickTimer::ticks(const std::chrono::duration<Rep, Period> &duration)
 {
     if (duration.count() < 0)
     {
@@ -106,16 +99,12 @@ constexpr auto TickTimer::ticks(const std::chrono::duration<Rep, Period> &durati
     return std::chrono::duration_cast<TickTimer::Duration>(duration).count();
 }
 
-TickTimer::TickTimer(const std::string_view name, const auto &timeout, const ExpirationCallback &expirationCallback,
-                     const Type type, const ActivationType activationType)
-    : Native::TX_TIMER{}, m_timeoutTicks{ticks(timeout)}, m_expirationCallback{expirationCallback},
-      m_id{expirationCallback ? ++m_idCounter : 0}, m_type{type}, m_activationType{activationType}
+TickTimer::TickTimer(const std::string_view name, const auto &timeout, const ExpirationCallback &expirationCallback, const Type type, const ActivationType activationType)
+    : Native::TX_TIMER{}, m_timeoutTicks{ticks(timeout)}, m_expirationCallback{expirationCallback}, m_id{expirationCallback ? ++m_idCounter : 0}, m_type{type}, m_activationType{activationType}
 {
     using namespace Native;
-    [[maybe_unused]] Error error{tx_timer_create(
-        this, const_cast<char *>(name.data()), m_expirationCallback ? TickTimer::expirationCallback : nullptr,
-        reinterpret_cast<Ulong>(this), type == Type::periodicImediate ? 1UL : m_timeoutTicks,
-        type == Type::oneShot ? 0UL : m_timeoutTicks, std::to_underlying(activationType))};
+    [[maybe_unused]] Error error{tx_timer_create(this, const_cast<char *>(name.data()), m_expirationCallback ? TickTimer::expirationCallback : nullptr, reinterpret_cast<Ulong>(this), type == Type::periodicImediate ? 1UL : m_timeoutTicks,
+                                                 type == Type::oneShot ? 0UL : m_timeoutTicks, std::to_underlying(activationType))};
 
     assert(error == Error::success);
 }
@@ -125,21 +114,17 @@ template <typename Rep, typename Period> auto TickTimer::reset(const std::chrono
     return reset(timeout, m_type, m_activationType);
 }
 
-template <typename Rep, typename Period>
-auto TickTimer::reset(const std::chrono::duration<Rep, Period> &timeout, const Type type)
+template <typename Rep, typename Period> auto TickTimer::reset(const std::chrono::duration<Rep, Period> &timeout, const Type type)
 {
     return reset(timeout, type, m_activationType);
 }
 
-template <typename Rep, typename Period>
-auto TickTimer::reset(const std::chrono::duration<Rep, Period> &timeout, const ActivationType activationType)
+template <typename Rep, typename Period> auto TickTimer::reset(const std::chrono::duration<Rep, Period> &timeout, const ActivationType activationType)
 {
     return reset(timeout, m_type, activationType);
 }
 
-template <typename Rep, typename Period>
-auto TickTimer::reset(
-    const std::chrono::duration<Rep, Period> &timeout, const Type type, const ActivationType activationType)
+template <typename Rep, typename Period> auto TickTimer::reset(const std::chrono::duration<Rep, Period> &timeout, const Type type, const ActivationType activationType)
 {
     Error error{deactivate()};
     if (error != Error::success)
@@ -147,8 +132,7 @@ auto TickTimer::reset(
         return error;
     }
 
-    error = Error{tx_timer_change(
-        this, type == Type::periodicImediate ? 1UL : ticks(timeout), type == Type::oneShot ? 0UL : ticks(timeout))};
+    error = Error{tx_timer_change(this, type == Type::periodicImediate ? 1UL : ticks(timeout), type == Type::oneShot ? 0UL : ticks(timeout))};
     if (error != Error::success)
     {
         return error;

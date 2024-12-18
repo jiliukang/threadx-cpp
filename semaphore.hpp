@@ -29,16 +29,14 @@ template <Ulong Ceiling = std::numeric_limits<Ulong>::max()> class CountingSemap
 
     constexpr auto max() const;
 
-    explicit CountingSemaphore(
-        const std::string_view name, const Ulong initialCount = 0, const NotifyCallback &releaseNotifyCallback = {});
+    explicit CountingSemaphore(const std::string_view name, const Ulong initialCount = 0, const NotifyCallback &releaseNotifyCallback = {});
 
     auto acquire();
 
     // must be used for calls from initialization, timers, and ISRs
     auto tryAcquire();
 
-    template <class Clock, typename Duration>
-    auto tryAcquireUntil(const std::chrono::time_point<Clock, Duration> &time);
+    template <class Clock, typename Duration> auto tryAcquireUntil(const std::chrono::time_point<Clock, Duration> &time);
 
     /// retrieves an instance (a single count) from the specified counting semaphore.
     /// As a result, the specified semaphore's count is decreased by one.
@@ -74,9 +72,7 @@ template <Ulong Ceiling> constexpr auto CountingSemaphore<Ceiling>::max() const
 /// \param initialCount
 /// \param releaseNotifyCallback The Notifycallback is not allowed to call any ThreadX API with a suspension option.
 template <Ulong Ceiling>
-CountingSemaphore<Ceiling>::CountingSemaphore(
-    const std::string_view name, const Ulong initialCount, const NotifyCallback &releaseNotifyCallback)
-    : CountingSemaphoreBase{Ceiling}, m_releaseNotifyCallback{releaseNotifyCallback}
+CountingSemaphore<Ceiling>::CountingSemaphore(const std::string_view name, const Ulong initialCount, const NotifyCallback &releaseNotifyCallback) : CountingSemaphoreBase{Ceiling}, m_releaseNotifyCallback{releaseNotifyCallback}
 {
     assert(initialCount <= Ceiling);
 
@@ -101,16 +97,12 @@ template <Ulong Ceiling> auto CountingSemaphore<Ceiling>::tryAcquire()
     return tryAcquireFor(TickTimer::noWait);
 }
 
-template <Ulong Ceiling>
-template <class Clock, typename Duration>
-auto CountingSemaphore<Ceiling>::tryAcquireUntil(const std::chrono::time_point<Clock, Duration> &time)
+template <Ulong Ceiling> template <class Clock, typename Duration> auto CountingSemaphore<Ceiling>::tryAcquireUntil(const std::chrono::time_point<Clock, Duration> &time)
 {
     return tryAcquireFor(time - Clock::now());
 }
 
-template <Ulong Ceiling>
-template <typename Rep, typename Period>
-auto CountingSemaphore<Ceiling>::tryAcquireFor(const std::chrono::duration<Rep, Period> &duration)
+template <Ulong Ceiling> template <typename Rep, typename Period> auto CountingSemaphore<Ceiling>::tryAcquireFor(const std::chrono::duration<Rep, Period> &duration)
 {
     return Error{tx_semaphore_get(this, TickTimer::ticks(duration))};
 }

@@ -61,13 +61,11 @@ template <MediaSectorSize N = defaultSectorSize> class Media : ThreadX::Native::
 
     static constexpr MediaSectorSize sectorSize();
     static auto setFileSystemTime();
-    //Once initialized by this constructor, the application should call fx_system_date_set and fx_system_time_set to start with an accurate system date and time.
-    explicit Media(std::byte *driverInfoPtr = nullptr, const NotifyCallback &openNotifyCallback = {},
-                   const NotifyCallback &closeNotifyCallback = {});
+    // Once initialized by this constructor, the application should call fx_system_date_set and fx_system_time_set to start with an accurate system date and time.
+    explicit Media(std::byte *driverInfoPtr = nullptr, const NotifyCallback &openNotifyCallback = {}, const NotifyCallback &closeNotifyCallback = {});
 
     auto open(const std::string_view name, const FaultTolerantMode mode = FaultTolerantMode::enable);
-    auto format(const std::string_view volumeName, const ThreadX::Ulong storageSize,
-                const ThreadX::Uint sectorPerCluster = 1, const ThreadX::Uint directoryEntriesFat12_16 = 32);
+    auto format(const std::string_view volumeName, const ThreadX::Ulong storageSize, const ThreadX::Uint sectorPerCluster = 1, const ThreadX::Uint directoryEntriesFat12_16 = 32);
     auto volume(const std::string_view volumeName);
     auto volume();
     auto createDir(const std::string_view dirName);
@@ -118,13 +116,10 @@ template <MediaSectorSize N = defaultSectorSize> class Media : ThreadX::Native::
 
 #ifdef FX_ENABLE_FAULT_TOLERANT
     static constexpr ThreadX::Uint m_faultTolerantCacheSize{FX_FAULT_TOLERANT_MAXIMUM_LOG_FILE_SIZE};
-    static_assert(m_faultTolerantCacheSize % ThreadX::wordSize == 0,
-                  "Fault tolerant cache size must be a multiple of word size.");
+    static_assert(m_faultTolerantCacheSize % ThreadX::wordSize == 0, "Fault tolerant cache size must be a multiple of word size.");
     // the scratch memory size shall be at least 3072 bytes and must be multiple of sector size.
     static constexpr auto cacheSize = []() {
-        return (std::to_underlying(N) > std::to_underlying(MediaSectorSize::oneKiloByte))
-                   ? std::to_underlying(MediaSectorSize::fourKilobytes) / ThreadX::wordSize
-                   : m_faultTolerantCacheSize / ThreadX::wordSize;
+        return (std::to_underlying(N) > std::to_underlying(MediaSectorSize::oneKiloByte)) ? std::to_underlying(MediaSectorSize::fourKilobytes) / ThreadX::wordSize : m_faultTolerantCacheSize / ThreadX::wordSize;
     };
     std::array<ThreadX::Ulong, cacheSize()> m_faultTolerantCache{};
 #endif
@@ -146,15 +141,12 @@ template <MediaSectorSize N> auto Media<N>::setFileSystemTime()
     auto time{std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())};
     auto localTime{*std::localtime(std::addressof(time))};
 
-    if (Error error{
-            ThreadX::Native::fx_system_date_set(localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday)};
-        error != Error::success)
+    if (Error error{ThreadX::Native::fx_system_date_set(localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday)}; error != Error::success)
     {
         return error;
     }
 
-    if (Error error{ThreadX::Native::fx_system_time_set(localTime.tm_hour, localTime.tm_min, localTime.tm_sec)};
-        error != Error::success)
+    if (Error error{ThreadX::Native::fx_system_time_set(localTime.tm_hour, localTime.tm_min, localTime.tm_sec)}; error != Error::success)
     {
         return error;
     }
@@ -163,10 +155,8 @@ template <MediaSectorSize N> auto Media<N>::setFileSystemTime()
 }
 
 template <MediaSectorSize N>
-Media<N>::Media(
-    std::byte *driverInfoPtr, const NotifyCallback &openNotifyCallback, const NotifyCallback &closeNotifyCallback)
-    : ThreadX::Native::FX_MEDIA{}, m_driverInfoPtr{driverInfoPtr}, m_openNotifyCallback{openNotifyCallback},
-      m_closeNotifyCallback{closeNotifyCallback}
+Media<N>::Media(std::byte *driverInfoPtr, const NotifyCallback &openNotifyCallback, const NotifyCallback &closeNotifyCallback)
+    : ThreadX::Native::FX_MEDIA{}, m_driverInfoPtr{driverInfoPtr}, m_openNotifyCallback{openNotifyCallback}, m_closeNotifyCallback{closeNotifyCallback}
 {
     if (not m_fileSystemInitialised.test_and_set())
     {
@@ -197,9 +187,7 @@ template <MediaSectorSize N> auto Media<N>::open(const std::string_view name, co
 {
     using namespace ThreadX::Native;
 
-    if (Error error{fx_media_open(this, const_cast<char *>(name.data()), Media::driverCallback, m_driverInfoPtr,
-                                  m_mediaMemory.data(), m_mediaMemorySizeInBytes)};
-        error != Error::success)
+    if (Error error{fx_media_open(this, const_cast<char *>(name.data()), Media::driverCallback, m_driverInfoPtr, m_mediaMemory.data(), m_mediaMemorySizeInBytes)}; error != Error::success)
     {
         return error;
     }
@@ -216,28 +204,25 @@ template <MediaSectorSize N> auto Media<N>::open(const std::string_view name, co
     return Error::success;
 }
 
-template <MediaSectorSize N>
-auto Media<N>::format(const std::string_view volumeName, const ThreadX::Ulong storageSize,
-                      const ThreadX::Uint sectorPerCluster, const ThreadX::Uint directoryEntriesFat12_16)
+template <MediaSectorSize N> auto Media<N>::format(const std::string_view volumeName, const ThreadX::Ulong storageSize, const ThreadX::Uint sectorPerCluster, const ThreadX::Uint directoryEntriesFat12_16)
 {
     assert(storageSize % std::to_underlying(N) == 0);
 
     return Error{
-        fx_media_format(
-            this,
-            Media::driverCallback,                                    // Driver entry
-            m_driverInfoPtr,                                          // could be RAM disk memory pointer
-            reinterpret_cast<ThreadX::Uchar *>(m_mediaMemory.data()), // Media buffer pointer
-            m_mediaMemorySizeInBytes,                                 // Media buffer size
-            const_cast<char *>(volumeName.data()),                    // Volume Name
-            1,                                                        // Number of FATs
-            directoryEntriesFat12_16,                                 // Directory Entries
-            0,                                                        // Hidden sectors
-            storageSize / std::to_underlying(N),                      // Total sectors
-            std::to_underlying(N),                                    // Sector size
-            sectorPerCluster,                                         // Sectors per cluster
-            1,                                                        // Heads
-            1)                                                        // Sectors per track
+        fx_media_format(this,
+                        Media::driverCallback,                                    // Driver entry
+                        m_driverInfoPtr,                                          // could be RAM disk memory pointer
+                        reinterpret_cast<ThreadX::Uchar *>(m_mediaMemory.data()), // Media buffer pointer
+                        m_mediaMemorySizeInBytes,                                 // Media buffer size
+                        const_cast<char *>(volumeName.data()),                    // Volume Name
+                        1,                                                        // Number of FATs
+                        directoryEntriesFat12_16,                                 // Directory Entries
+                        0,                                                        // Hidden sectors
+                        storageSize / std::to_underlying(N),                      // Total sectors
+                        std::to_underlying(N),                                    // Sector size
+                        sectorPerCluster,                                         // Sectors per cluster
+                        1,                                                        // Heads
+                        1)                                                        // Sectors per track
     };
 }
 
@@ -279,8 +264,7 @@ template <MediaSectorSize N> auto Media<N>::deleteFile(const std::string_view fi
     return Error{fx_file_delete(this, const_cast<char *>(fileName.data()))};
 }
 
-template <MediaSectorSize N>
-auto Media<N>::renameFile(const std::string_view fileName, const std::string_view newFileName)
+template <MediaSectorSize N> auto Media<N>::renameFile(const std::string_view fileName, const std::string_view newFileName)
 {
     return Error{fx_file_rename(this, const_cast<char *>(fileName.data()), const_cast<char *>(newFileName.data()))};
 }
@@ -348,14 +332,12 @@ template <MediaSectorSize N> auto Media<N>::name() const
     return std::string_view{fx_media_name};
 }
 
-template <MediaSectorSize N>
-auto Media<N>::writeSector(const ThreadX::Ulong sectorNo, const std::span<std::byte, std::to_underlying(N)> sectorData)
+template <MediaSectorSize N> auto Media<N>::writeSector(const ThreadX::Ulong sectorNo, const std::span<std::byte, std::to_underlying(N)> sectorData)
 {
     return Error{fx_media_write(this, sectorNo, sectorData.data())};
 }
 
-template <MediaSectorSize N>
-auto Media<N>::readSector(const ThreadX::Ulong sectorNo, std::span<std::byte, std::to_underlying(N)> sectorData)
+template <MediaSectorSize N> auto Media<N>::readSector(const ThreadX::Ulong sectorNo, std::span<std::byte, std::to_underlying(N)> sectorData)
 {
     return Error{fx_media_read(this, sectorNo, sectorData.data())};
 }
