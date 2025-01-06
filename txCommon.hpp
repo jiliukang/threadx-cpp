@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <cstring>
 
+// This file contains common type definitions and error enumerations for ThreadX.
+
 namespace ThreadX::Native
 {
 #include "tx_api.h"

@@ -52,7 +52,7 @@ std::string_view EventFlags::name() const
     return tx_event_flags_group_name;
 }
 
-void EventFlags::setNotifyCallback(auto notifyGroupPtr)
+void EventFlags::setNotifyCallback(Native::TX_EVENT_FLAGS_GROUP *notifyGroupPtr)
 {
     auto &eventFlags{static_cast<EventFlags &>(*notifyGroupPtr)};
     eventFlags.m_setNotifyCallback(eventFlags);

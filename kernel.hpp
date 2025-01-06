@@ -38,7 +38,7 @@ class CriticalSection
 
 void start();
 
-///
+/// 
 /// \return true if it is called in a thread
 bool inThread();
 

@@ -5,6 +5,7 @@
 #include "fxCommon.hpp"
 #include "txCommon.hpp"
 #include <array>
+#include <type_traits> // for std::to_underlying
 
 namespace ThreadX
 {
@@ -149,4 +150,4 @@ inline auto registerbufFullNotifyCallback(const TraceBufFullNotifyCallback buffe
     return Error{Native::tx_trace_buffer_full_notify(bufferFullNotifyCallback)};
 }
 } // namespace ThreadX
-#endif
+#endif // TX_ENABLE_EVENT_TRACE

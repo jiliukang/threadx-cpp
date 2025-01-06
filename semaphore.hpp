@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include "tickTimer.hpp"
 #include "txCommon.hpp"
 #include <functional>

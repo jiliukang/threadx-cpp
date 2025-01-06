@@ -1,5 +1,7 @@
 #pragma once
 
+// This file contains common definitions and enumerations for FileX.
+
 #include "txCommon.hpp"
 
 namespace ThreadX::Native

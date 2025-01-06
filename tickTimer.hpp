@@ -4,6 +4,7 @@
 #include <atomic>
 #include <chrono>
 #include <functional>
+#include <string_view>
 #include <utility>
 
 namespace ThreadX
@@ -16,7 +17,7 @@ class TickTimer : Native::TX_TIMER
     enum class Type
     {
         periodic, ///< periodic
-        periodicImediate,
+        periodicImmediate,
         oneShot ///< oneShot
     };
 
@@ -103,7 +104,7 @@ TickTimer::TickTimer(const std::string_view name, const auto &timeout, const Exp
     : Native::TX_TIMER{}, m_timeoutTicks{ticks(timeout)}, m_expirationCallback{expirationCallback}, m_id{expirationCallback ? ++m_idCounter : 0}, m_type{type}, m_activationType{activationType}
 {
     using namespace Native;
-    [[maybe_unused]] Error error{tx_timer_create(this, const_cast<char *>(name.data()), m_expirationCallback ? TickTimer::expirationCallback : nullptr, reinterpret_cast<Ulong>(this), type == Type::periodicImediate ? 1UL : m_timeoutTicks,
+    [[maybe_unused]] Error error{tx_timer_create(this, const_cast<char *>(name.data()), m_expirationCallback ? TickTimer::expirationCallback : nullptr, reinterpret_cast<Ulong>(this), type == Type::periodicImmediate ? 1UL : m_timeoutTicks,
                                                  type == Type::oneShot ? 0UL : m_timeoutTicks, std::to_underlying(activationType))};
 
     assert(error == Error::success);
@@ -132,7 +133,7 @@ template <typename Rep, typename Period> auto TickTimer::reset(const std::chrono
         return error;
     }
 
-    error = Error{tx_timer_change(this, type == Type::periodicImediate ? 1UL : ticks(timeout), type == Type::oneShot ? 0UL : ticks(timeout))};
+    error = Error{tx_timer_change(this, type == Type::periodicImmediate ? 1UL : ticks(timeout), type == Type::oneShot ? 0UL : ticks(timeout))};
     if (error != Error::success)
     {
         return error;

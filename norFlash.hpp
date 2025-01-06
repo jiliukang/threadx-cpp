@@ -5,6 +5,7 @@
 #include <atomic>
 #include <span>
 #include <utility>
+#include <cassert> // Added missing include for assert
 
 namespace LevelX
 {
@@ -59,9 +60,9 @@ template <ThreadX::Uint BlockSectors, ThreadX::Uint CacheSectors = 0> class NorF
     auto close();
     auto defragment();
     auto defragment(const ThreadX::Uint numberOfBlocks);
-    // sectorData must be word aligned. Uchar type becasue media driver pointers are char*.
+    // sectorData must be word aligned. Uchar type because media driver pointers are char*.
     auto readSector(const ThreadX::Ulong logicalSector, std::span<ThreadX::Ulong, norSectorSizeInWord> sectorData);
-    // sectorData must be word aligned. Uchar type becasue media driver pointers are char*.
+    // sectorData must be word aligned. Uchar type because media driver pointers are char*.
     auto writeSector(const ThreadX::Ulong logicalSector, const std::span<ThreadX::Ulong, norSectorSizeInWord> sectorData);
     auto releaseSector(const ThreadX::Ulong logicalSector);
 

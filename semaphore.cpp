@@ -1,4 +1,5 @@
 #include "semaphore.hpp"
+#include <cassert>
 
 namespace ThreadX
 {

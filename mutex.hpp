@@ -3,6 +3,7 @@
 #include "tickTimer.hpp"
 #include "txCommon.hpp"
 #include <mutex>
+#include <string_view>
 
 #define tryLock() try_lock()
 #define tryLockUntil(x) try_lock_until(x)

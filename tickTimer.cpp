@@ -1,4 +1,6 @@
 #include "tickTimer.hpp"
+#include <cassert>
+#include <string_view>
 
 namespace ThreadX
 {

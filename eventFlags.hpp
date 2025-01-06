@@ -3,6 +3,7 @@
 #include <bitset>
 #include <climits>
 #include <functional>
+#include <string_view>
 
 namespace ThreadX
 {
@@ -70,7 +71,7 @@ class EventFlags : Native::TX_EVENT_FLAGS_GROUP
     /// \return actual flags set
     BitmaskPair waitFor(const Bitmask &bitMask, const auto &duration, const FlagOption flagOption);
 
-    static void setNotifyCallback(auto notifyGroupPtr);
+    static void setNotifyCallback(Native::TX_EVENT_FLAGS_GROUP *notifyGroupPtr);
 
     const NotifyCallback m_setNotifyCallback;
 };

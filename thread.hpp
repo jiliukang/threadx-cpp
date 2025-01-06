@@ -5,6 +5,7 @@
 #include "semaphore.hpp"
 #include "tickTimer.hpp"
 #include "txCommon.hpp"
+#include <cassert>
 
 namespace ThreadX::ThisThread
 {
@@ -295,7 +296,7 @@ template <class Pool> auto Thread<Pool>::priority() const
 template <class Pool> auto Thread<Pool>::timeSlice(const auto timeSlice)
 {
     Ulong oldTimeSlice;
-    Error error{tx_thread_time_slice_change(this, timeSlice, std::addressof(oldTimeSlice))};
+    return Error{tx_thread_time_slice_change(this, timeSlice, std::addressof(oldTimeSlice))};
 }
 
 template <class Pool> auto Thread<Pool>::timeSlice() const

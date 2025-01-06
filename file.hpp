@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fxCommon.hpp"
+#include <cassert>
 #include <cstring>
 #include <functional>
 #include <span>

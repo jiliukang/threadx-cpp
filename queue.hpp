@@ -3,8 +3,10 @@
 #include "memoryPool.hpp"
 #include "tickTimer.hpp"
 #include "txCommon.hpp"
+#include <cassert>
 #include <chrono>
 #include <functional>
+#include <string_view>
 
 namespace ThreadX
 {

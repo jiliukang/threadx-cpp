@@ -1,4 +1,6 @@
 #include "mutex.hpp"
+#include <cassert>
+#include <string_view>
 #include <utility>
 
 namespace ThreadX
@@ -37,7 +39,7 @@ Error Mutex::unlock()
 
 std::string_view Mutex::name() const
 {
-    return tx_mutex_name;
+    return std::string_view{tx_mutex_name};
 }
 
 Error Mutex::prioritise()

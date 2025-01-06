@@ -3,6 +3,8 @@
 #include "tickTimer.hpp"
 #include "txCommon.hpp"
 #include <array>
+#include <string_view>
+#include <cassert>
 
 namespace ThreadX
 {
@@ -162,7 +164,7 @@ template <typename Rep, typename Period>
 Allocation<Pool>::Allocation(Pool &pool, const std::chrono::duration<Rep, Period> &duration)
     requires(std::is_base_of_v<BlockPoolBase, Pool>)
 {
-    [[maybe_unused]] Error error{tx_block_allocate(tx_byte_allocate(std::addressof(pool), std::addressof(memoryPtr), TickTimer::ticks(duration)))};
+    [[maybe_unused]] Error error{tx_block_allocate(std::addressof(pool), reinterpret_cast<void **>(std::addressof(memoryPtr)), TickTimer::ticks(duration))};
     assert(error == Error::success);
 }
 
