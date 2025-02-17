@@ -2,6 +2,7 @@
 
 #include "txCommon.hpp"
 #include <atomic>
+#include <cassert>
 #include <chrono>
 #include <functional>
 #include <string_view>
