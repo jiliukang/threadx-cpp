@@ -90,6 +90,11 @@ class TickTimer : Native::TX_TIMER
 
 static_assert(std::chrono::is_clock_v<TickTimer>);
 
+/// Returns the internal tick count ceiled to tick duration (usually 10ms).
+///\tparam Rep
+///\tparam Period
+///\param duration
+///\return constexpr auto
 template <typename Rep, typename Period> constexpr auto TickTimer::ticks(const std::chrono::duration<Rep, Period> &duration)
 {
     if (duration.count() < 0)
@@ -97,7 +102,7 @@ template <typename Rep, typename Period> constexpr auto TickTimer::ticks(const s
         return 0UL;
     }
 
-    return std::chrono::duration_cast<TickTimer::Duration>(duration).count();
+    return std::chrono::ceil<TickTimer::Duration>(duration).count();
 }
 
 TickTimer::TickTimer(const std::string_view name, const auto &timeout, const ExpirationCallback &expirationCallback, const Type type, const ActivationType activationType)
