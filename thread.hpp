@@ -110,8 +110,11 @@ template <class Pool> class Thread : Native::TX_THREAD
     /// suspends the specified application thread. A thread may call this service to suspend itself.
     auto suspend();
 
-    /// resets the specified thread to execute at the entry point defined at thread creation.
     /// The thread must be in either a ThreadState::completed or ThreadState::terminated state for it to be reset.
+    auto reset();
+
+    /// resets the specified thread to execute at the entry point defined at thread creation.
+    /// The thread must be in either a ThreadState::completed or ThreadState::terminated state for it to be resetarted.
     /// The thread must be resumed for it to execute again.
     auto restart();
 
@@ -234,6 +237,11 @@ template <class Pool> auto Thread<Pool>::resume()
 template <class Pool> auto Thread<Pool>::suspend()
 {
     return Error{tx_thread_suspend(this)};
+}
+
+template <class Pool> auto Thread<Pool>::reset()
+{
+    return Error{tx_thread_reset(this)};
 }
 
 template <class Pool> auto Thread<Pool>::restart()
